@@ -32,11 +32,15 @@ async def regchannel(interaction: discord.Interaction, channel: discord.TextChan
         {"$set": {"channel_id": channel.id}},
         upsert=True
     )
-    
-    if not interaction.response.is_done():  # მხოლოდ პირველი პასუხი
-        await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
-    else:
-        await interaction.followup.send(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
+
+    try:
+        # დააკვირდი, იყო თუ არა უკვე პასუხი გაგზავნილი
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
+        else:
+            await interaction.followup.send(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
+    except Exception as e:
+        print(f"Error sending response: {e}")
 
 # მაგალითი გამოყენების
 @bot.command()
