@@ -151,42 +151,42 @@ async def reg_22_00(interaction: discord.Interaction):
 
 @bot.tree.command(name="createteamlist", description="შექმენი Team List 22:00")
 async def createteamlist(interaction: discord.Interaction):
-    guild_id = interaction.guild.id
-    record = channel_collection.find_one({"guild_id": guild_id})
+    try:
+        guild_id = interaction.guild.id
+        record = channel_collection.find_one({"guild_id": guild_id})
 
-    if not record or "registered_messages" not in record:
-        await interaction.response.send_message("⚠️ ჯერ არ არის შეტყობინება რეგისტრირებული.")
-        return
+        if not record or "registered_messages" not in record:
+            await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
+            return
 
-    team_channel_id = record.get("teamlist_channel")
-    team_channel = interaction.guild.get_channel(team_channel_id)
-    if not team_channel:
-        await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
-        return
+        team_channel_id = record.get("teamlist_channel")
+        team_channel = interaction.guild.get_channel(team_channel_id)
+        if not team_channel:
+            await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
+            return
 
-    messages = record["registered_messages"]
+        messages = record["registered_messages"]
 
-    # ფორმატირებული ციფრები unicode მრგვალი სტილში (𝟬𝟭, 𝟭𝟬, და ა.შ.)
-    def to_fancy_number(n):
-        num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
-        return ''.join(num_map[d] for d in f"{n:02}")
+        def to_fancy_number(n):
+            num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
+            return ''.join(num_map[d] for d in f"{n:02}")
 
-    lines = [
-        f"> {to_fancy_number(i + 1)}. {messages[i]}" if i < len(messages)
-        else f"> {to_fancy_number(i + 1)}."
-        for i in range(25)
-    ]
+        lines = [
+            f"> {to_fancy_number(i + 1)}. {messages[i]}" if i < len(messages)
+            else f"> {to_fancy_number(i + 1)}."
+            for i in range(25)
+        ]
 
-    message = (
-        "> \n"
-        ">                  __**TEAM LIST**__\n"
-        ">                        **22:00**\n"
-        + "\n".join(lines) +
-        "\n>\n> || @everyone  ||"
-    )
+        message = (
+            "> \n"
+            ">                  __**TEAM LIST**__\n"
+            ">                        **22:00**\n"
+            + "\n".join(lines) +
+            "\n>\n> || @everyone  ||"
+        )
 
-    await team_channel.send(message)
-    await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
+        await team_channel.send(message)
+        await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
 
     except Exception as e:
         print(f"Error sending response: {e}")
