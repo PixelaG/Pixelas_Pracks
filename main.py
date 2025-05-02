@@ -94,11 +94,8 @@ async def reg_22_00(interaction: discord.Interaction):
         else:
             await interaction.followup.send("⚠️ ჯერ არხი არ არის რეგისტრირებული. გამოიყენე /regchannel_22:00.")
 
-    except discord.errors.HTTPException as e:
-        if e.code == 40060:
-            print("⛔ Interaction უკვე იყო დამუშავებული, მეორე პასუხი არ დაიშვება.")
-        else:
-            raise e
+    except Exception as e:
+        print(f"Error sending response: {e}")
         
 
 # მაგალითი გამოყენების
