@@ -60,22 +60,15 @@ async def on_message(message):
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
-    if record:
-        print(f"[DEBUG] Message received in: {message.channel.id}")
-        print(f"[DEBUG] Registered channel ID: {record['channel_id']}")
-
     if record and "channel_id" in record and message.channel.id == record["channel_id"]:
         try:
-            # MongoDB-ში დასამატებელი 'banned' როლის მიღება
             banned_role_id = record["banned_role"]
             banned_role = message.guild.get_role(banned_role_id)
 
-            # თუ მომხმარებელს აქვს Banned როლი
             if banned_role in message.author.roles:
                 await message.add_reaction("❌")
                 print(f"[INFO] {message.author.name} has banned role, no 22:00 role assigned.")
             else:
-                # თუ მომხმარებელს არ აქვს Banned როლი
                 await message.add_reaction("✅")
                 role = message.guild.get_role(record["role_22_00"])
                 if role:
@@ -84,9 +77,16 @@ async def on_message(message):
                 else:
                     print("[ERROR] 22:00 role not found")
 
+                # MongoDB-ში მომხმარებლის დამატება
+                channel_collection.update_one(
+                    {"guild_id": guild_id},
+                    {"$addToSet": {"registered_users": message.author.name}},
+                    upsert=True
+                )
+                print(f"[INFO] {message.author.name} added to registered users.")
         except Exception as e:
             print(f"[ERROR] {e}")
-
+            
     await bot.process_commands(message)
 
 # /regchannel ბრძანება
@@ -158,7 +158,7 @@ async def createteamlist(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
         return
 
-    team_channel_id = record.get("teamlist_channel")  # ✅ აქ ვიღებთ Team List არხის ID-ს MongoDB-დან
+    team_channel_id = record.get("teamlist_channel")
     team_channel = interaction.guild.get_channel(team_channel_id)
     if not team_channel:
         await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
@@ -166,8 +166,8 @@ async def createteamlist(interaction: discord.Interaction):
 
     users = record["registered_users"]
     lines = [
-        f"> {i+1}.<a:h_:1306037163187507291> {users[i]}" if i < len(users)
-        else f"> {i+1}.<a:h_:1306037163187507291>"
+        f"> {i+1}. <a:h_:1306037163187507291> {users[i]}" if i < len(users)
+        else f"> {i+1}. <a:h_:1306037163187507291>"
         for i in range(25)
     ]
 
