@@ -172,10 +172,10 @@ async def createteamlist(interaction: discord.Interaction):
             return ''.join(num_map[d] for d in f"{n:02}")
 
         lines = [
-            f"> {to_fancy_number(i + 1)}. {messages[i]}" if i < len(messages)
-            else f"> {to_fancy_number(i + 1)}."
-            for i in range(25)
-        ]
+          f"> {to_fancy_number(i)}. {messages[25 - i]}" if 25 - i < len(messages)
+          else f"> {to_fancy_number(i)}."
+          for i in range(25, 0, -1)
+         ]
 
         message = (
             "> \n"
@@ -187,6 +187,21 @@ async def createteamlist(interaction: discord.Interaction):
 
         await team_channel.send(message)
         await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
+
+    except Exception as e:
+        print(f"Error sending response: {e}")
+
+@bot.tree.command(name="clearlist", description="წაშალე Team List ამ სერვერზე.")
+@app_commands.checks.has_permissions(administrator=True)
+async def clearlist(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True)
+
+    try:
+        server_id = str(interaction.guild.id)
+        await collection.delete_one({"server_id": server_id})
+        await interaction.followup.send("✅ Team List წარმატებით წაიშალა!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ წაშლის დროს მოხდა შეცდომა: {e}", ephemeral=True)
 
     except Exception as e:
         print(f"Error sending response: {e}")
