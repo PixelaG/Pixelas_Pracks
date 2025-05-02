@@ -45,36 +45,30 @@ async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
 
 # /regchannel ბრძანება
-@bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი და როლები")
-@app_commands.describe(channel="აირჩიე არხი", role_22_00="აირჩიე 22:00 როლი", banned_role="აირჩიე Banned როლი")
-async def regchannel_22_00(interaction: discord.Interaction, channel: discord.TextChannel, role_22_00: discord.Role, banned_role: discord.Role):
+@bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
+@app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი")
+async def regchannel_22_00(
+    interaction: discord.Interaction,
+    channel: discord.TextChannel,
+    role_22_00: discord.Role,
+    banned_role: discord.Role,
+):
     guild_id = interaction.guild.id
-
-    # გადამოწმება, რომ არხი და როლები სწორად არიან მიღებული
-    if not channel:
-        await interaction.response.send_message("⚠️ არხი ვერ მოიძებნა.")
-        return
-    if not role_22_00:
-        await interaction.response.send_message("⚠️ 22:00 როლი ვერ მოიძებნა.")
-        return
-    if not banned_role:
-        await interaction.response.send_message("⚠️ Banned როლი ვერ მოიძებნა.")
-        return
-
-    # MongoDB-ში მონაცემების შენახვა
+    
+    # არხის მონაცემები MongoDB-ში შენახვა
     channel_collection.update_one(
         {"guild_id": guild_id},
-        {
-            "$set": {
-                "channel_id": channel.id,
-                "role_22_00_id": role_22_00.id,
-                "banned_role_id": banned_role.id
-            }
-        },
+        {"$set": {"channel_id": channel.id, "role_22_00": role_22_00.id, "banned_role": banned_role.id}},
         upsert=True
     )
-
-    await interaction.response.send_message(f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა.")
+    
+    # როლების მიცემა
+    await interaction.guild.get_member(interaction.user.id).add_roles(role_22_00)
+    
+    try:
+        await interaction.response.send_message(f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა.")
+    except Exception as e:
+        print(f"Error sending response: {e}")
 
 
 @bot.tree.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
