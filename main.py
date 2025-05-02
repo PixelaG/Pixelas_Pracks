@@ -23,7 +23,7 @@ def keep_alive():
 keep_alive()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-mongo_uri = os.getenv("MONGO_URI")
+mongo_uri = os.getenv("MONGODB_URI")
 
 # MongoDB კავშირი (AsyncIOMotorClient)
 client = AsyncIOMotorClient(mongo_uri)
