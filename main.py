@@ -66,11 +66,12 @@ async def on_message(message):
             banned_role_id = record["banned_role"]
             banned_role = message.guild.get_role(banned_role_id)
 
-            # თუ მომხმარებელს აქვს Banned როლი, და არ მივცემთ 22:00 როლს
+            # თუ მომხმარებელს აქვს Banned როლი
             if banned_role in message.author.roles:
                 await message.add_reaction("❌")
                 print(f"[INFO] {message.author.name} has banned role, no 22:00 role assigned.")
             else:
+                # თუ მომხმარებელს არ აქვს Banned როლი
                 await message.add_reaction("✅")
                 role = message.guild.get_role(record["role_22_00"])
                 if role:
