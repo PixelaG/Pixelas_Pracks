@@ -45,7 +45,7 @@ async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
 
 # /regchannel ბრძანება
-@bot.tree.command(name="regchannel_22:00", description="დაარეგისტრირე არხი სისტემისთვის")
+@bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი სისტემისთვის")
 @app_commands.describe(channel="აირჩიე არხი")
 async def regchannel(interaction: discord.Interaction, channel: discord.TextChannel):
     guild_id = interaction.guild.id
@@ -63,7 +63,7 @@ async def regchannel(interaction: discord.Interaction, channel: discord.TextChan
         print(f"Error sending response: {e}")
 
 
-@bot.tree.command(name="reg_22:00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
+@bot.tree.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
 async def reg_22_00(interaction: discord.Interaction):
     guild_id = interaction.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
