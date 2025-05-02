@@ -1,20 +1,20 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from pymongo import MongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 import os
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-MONGO_URI = os.getenv("MONGODB_URI")
+mongo_uri = os.getenv("MONGO_URI")
+
+# MongoDB კავშირი (AsyncIOMotorClient)
+client = AsyncIOMotorClient(mongo_uri)
+db = client["Pixelas_Pracks"]
+channel_collection = db["registered_channels"]
 
 intents = discord.Intents.default()
 intents.message_content = True  # აუცილებელია ტექსტური შეტყობინებების წასაკითხად
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-# MongoDB კავშირი
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client["discord_bot"]
-channel_collection = db["registered_channels"]
 
 @bot.event
 async def on_ready():
