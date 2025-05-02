@@ -56,18 +56,16 @@ async def regchannel_22_00(
 ):
     guild_id = interaction.guild.id
     
-    # არხის მონაცემები MongoDB-ში შენახვა
+    # არხის და როლების მონაცემები MongoDB-ში შენახვა
     channel_collection.update_one(
         {"guild_id": guild_id},
         {"$set": {"channel_id": channel.id, "role_22_00": role_22_00.id, "banned_role": banned_role.id}},
         upsert=True
     )
     
-    # როლების მიცემა
-    await interaction.guild.get_member(interaction.user.id).add_roles(role_22_00)
-    
+    # მხოლოდ MongoDB-ს განახლება
     try:
-        await interaction.response.send_message(f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა.")
+        await interaction.response.send_message(f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა MongoDB-ში!")
     except Exception as e:
         print(f"Error sending response: {e}")
 
