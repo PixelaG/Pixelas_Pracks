@@ -36,6 +36,7 @@ db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 
 intents = discord.Intents.default()
+intents.members = True  # აუცილებელია წევრების წვდომისთვის
 intents.message_content = True  # აუცილებელია ტექსტური შეტყობინებების წასაკითხად
 bot = commands.Bot(command_prefix="!", intents=intents)
 
