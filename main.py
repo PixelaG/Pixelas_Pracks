@@ -72,25 +72,33 @@ async def regchannel_22_00(
 
 @bot.tree.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
 async def reg_22_00(interaction: discord.Interaction):
-    guild_id = interaction.guild.id
-    record = channel_collection.find_one({"guild_id": guild_id})
+    try:
+        await interaction.response.defer()  # მხოლოდ ერთხელ უნდა მოხდეს acknowledgment
 
-    if record and "channel_id" in record:
-        channel = interaction.guild.get_channel(record["channel_id"])
-        if channel:
-            message = (
-                ">>> #  __**Registration is Open**__\n\n"
-                "🇬🇪 **22:00**﹒:flag_eu: 🇩🇿 **19:00**\n"
-                "__`𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗿𝗼𝗼𝗺 { 𝟯𝘅 𝗹𝗼𝗼𝗧.}`__\n"
-                "||@everyone @here ||"
-            )
-            await interaction.response.defer()  # დროებითი პასუხი
-            await channel.send(message)
-            await interaction.followup.send("✅ რეგისტრაციის შეტყობინება წარმატებით გაიგზავნა!")  # მეორადი პასუხი
+        guild_id = interaction.guild.id
+        record = channel_collection.find_one({"guild_id": guild_id})
+
+        if record and "channel_id" in record:
+            channel = interaction.guild.get_channel(record["channel_id"])
+            if channel:
+                message = (
+                    ">>> #  __**Registration is Open**__\n\n"
+                    "🇬🇪 **22:00**﹒:flag_eu: 🇩🇿 **19:00**\n"
+                    "__`𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗿𝗼𝗼𝗺 { 𝟯𝘅 𝗹𝗼𝗼𝗧.}`__\n"
+                    "||@everyone @here ||"
+                )
+                await channel.send(message)
+                await interaction.followup.send("✅ რეგისტრაციის შეტყობინება წარმატებით გაიგზავნა!")
+            else:
+                await interaction.followup.send("⚠️ არხი ვერ მოიძებნა.")
         else:
-            await interaction.response.send_message("⚠️ არხი ვერ მოიძებნა.")
-    else:
-        await interaction.response.send_message("⚠️ ჯერ არხი არ არის რეგისტრირებული. გამოიყენე /regchannel_22:00.")
+            await interaction.followup.send("⚠️ ჯერ არხი არ არის რეგისტრირებული. გამოიყენე /regchannel_22:00.")
+
+    except discord.errors.HTTPException as e:
+        if e.code == 40060:
+            print("⛔ Interaction უკვე იყო დამუშავებული, მეორე პასუხი არ დაიშვება.")
+        else:
+            raise e
         
 
 # მაგალითი გამოყენების
