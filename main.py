@@ -9,7 +9,7 @@ mongo_uri = os.getenv("MONGO_URI")
 
 # MongoDB კავშირი (AsyncIOMotorClient)
 client = AsyncIOMotorClient(mongo_uri)
-db = client["Pixelas_Bot"]
+db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 
 intents = discord.Intents.default()
