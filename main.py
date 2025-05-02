@@ -52,11 +52,8 @@ async def regchannel(interaction: discord.Interaction, channel: discord.TextChan
     )
 
     try:
-        # დააკვირდი, იყო თუ არა უკვე პასუხი გაგზავნილი
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
-        else:
-            await interaction.followup.send(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
+        # შეცვლილია ამ ნაწილში
+        await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
     except Exception as e:
         print(f"Error sending response: {e}")
 
