@@ -45,22 +45,38 @@ async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
 
 # /regchannel ბრძანება
-@bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი სისტემისთვის")
-@app_commands.describe(channel="აირჩიე არხი")
-async def regchannel(interaction: discord.Interaction, channel: discord.TextChannel):
+@bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი და როლები")
+@app_commands.describe(channel_id="ჩაწერე არხის ID", role_22_00="ჩაწერე 22:00 როლი", banned_role="ჩაწერე Banned როლი")
+async def regchannel_22_00(interaction: discord.Interaction, channel_id: int, role_22_00: int, banned_role: int):
     guild_id = interaction.guild.id
-    # შეინახე ან განაახლე მონაცემი
+    channel = interaction.guild.get_channel(channel_id)
+    role_22_00 = interaction.guild.get_role(role_22_00)
+    banned_role = interaction.guild.get_role(banned_role)
+
+    if not channel:
+        await interaction.response.send_message("⚠️ არხი ვერ მოიძებნა.")
+        return
+    if not role_22_00:
+        await interaction.response.send_message("⚠️ 22:00 როლი ვერ მოიძებნა.")
+        return
+    if not banned_role:
+        await interaction.response.send_message("⚠️ Banned როლი ვერ მოიძებნა.")
+        return
+
+    # MongoDB-ში მონაცემების შენახვა
     channel_collection.update_one(
         {"guild_id": guild_id},
-        {"$set": {"channel_id": channel.id}},
+        {
+            "$set": {
+                "channel_id": channel.id,
+                "role_22_00_id": role_22_00.id,
+                "banned_role_id": banned_role.id
+            }
+        },
         upsert=True
     )
 
-    try:
-        # შეცვლილია ამ ნაწილში
-        await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
-    except Exception as e:
-        print(f"Error sending response: {e}")
+    await interaction.response.send_message(f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა.")
 
 
 @bot.tree.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
@@ -73,7 +89,7 @@ async def reg_22_00(interaction: discord.Interaction):
         if channel:
             message = (
                 ">>> #  __**Registration is Open**__\n\n"
-                "🇬🇪 **00:30**﹒:flag_eu: 🇩🇿 **21:30**\n"
+                "🇬🇪 **22:00**﹒:flag_eu: 🇩🇿 **19:00**\n"
                 "__`𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗿𝗼𝗼𝗺 { 𝟯𝘅 𝗹𝗼𝗼𝗧.}`__\n"
                 "||@everyone @here ||"
             )
