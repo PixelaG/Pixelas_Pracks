@@ -87,25 +87,33 @@ async def on_message(message):
 
 # /regchannel ბრძანება
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
-@app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი")
+@app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
 async def regchannel_22_00(
     interaction: discord.Interaction,
     channel: discord.TextChannel,
     role_22_00: discord.Role,
     banned_role: discord.Role,
+    teamlist_channel: discord.TextChannel
 ):
     guild_id = interaction.guild.id
-    
-    # არხის და როლების მონაცემები MongoDB-ში შენახვა
+
+    # MongoDB-ში მონაცემების შენახვა (შედის teamlist_channel.id)
     channel_collection.update_one(
         {"guild_id": guild_id},
-        {"$set": {"channel_id": channel.id, "role_22_00": role_22_00.id, "banned_role": banned_role.id}},
+        {"$set": {
+            "channel_id": channel.id,
+            "role_22_00": role_22_00.id,
+            "banned_role": banned_role.id,
+            "teamlist_channel": teamlist_channel.id
+        }},
         upsert=True
     )
-    
-    # უბრალოდ MongoDB-ს განახლება, როლის მინიჭების გარეშე
+
     try:
-        await interaction.response.send_message(f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა MongoDB-ში!")
+        await interaction.response.send_message(
+            f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა MongoDB-ში!\n"
+            f"📄 Team List Channel: `{teamlist_channel.name}`"
+        )
     except Exception as e:
         print(f"Error sending response: {e}")
 
