@@ -8,6 +8,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 MONGO_URI = os.getenv("MONGODB_URI")
 
 intents = discord.Intents.default()
+intents.message_content = True  # აუცილებელია ტექსტური შეტყობინებების წასაკითხად
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # MongoDB კავშირი
