@@ -165,14 +165,15 @@ async def createteamlist(interaction: discord.Interaction):
         return
 
     users = record["registered_users"]
-    lines = [
-        f"𝟬{i+1}." if i < 9 else f"𝟭{i-8}." if i < 14 else f"𝟭{i-8}." if i < 20 else f"𝟮{i-20}."
-        for i in range(25)
-    ]
 
-    user_lines = [
-        f"> {lines[i]} {users[i]}" if i < len(users)
-        else f"> {lines[i]}"
+    # ფორმატირებული ციფრები unicode მრგვალი სტილში (𝟬𝟭, 𝟭𝟬, და ა.შ.)
+    def to_fancy_number(n):
+        num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
+        return ''.join(num_map[d] for d in f"{n:02}")
+
+    lines = [
+        f"> {to_fancy_number(i + 1)}. {users[i]}" if i < len(users)
+        else f"> {to_fancy_number(i + 1)}."
         for i in range(25)
     ]
 
@@ -180,7 +181,7 @@ async def createteamlist(interaction: discord.Interaction):
         "> \n"
         ">                  __**TEAM LIST**__\n"
         ">                        **22:00**\n"
-        + "\n".join(user_lines) +
+        + "\n".join(lines) +
         "\n>\n> || @everyone  ||"
     )
 
