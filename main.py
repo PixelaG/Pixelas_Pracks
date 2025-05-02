@@ -63,7 +63,7 @@ async def regchannel_22_00(
         upsert=True
     )
     
-    # მხოლოდ MongoDB-ს განახლება
+    # უბრალოდ MongoDB-ს განახლება, როლის მინიჭების გარეშე
     try:
         await interaction.response.send_message(f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა MongoDB-ში!")
     except Exception as e:
