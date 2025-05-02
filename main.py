@@ -45,7 +45,7 @@ async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
 
 # /regchannel ბრძანება
-@bot.tree.command(name="regchannel", description="დაარეგისტრირე არხი სისტემისთვის")
+@bot.tree.command(name="regchannel_22:00", description="დაარეგისტრირე არხი სისტემისთვის")
 @app_commands.describe(channel="აირჩიე არხი")
 async def regchannel(interaction: discord.Interaction, channel: discord.TextChannel):
     guild_id = interaction.guild.id
@@ -61,6 +61,29 @@ async def regchannel(interaction: discord.Interaction, channel: discord.TextChan
         await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
     except Exception as e:
         print(f"Error sending response: {e}")
+
+
+@bot.tree.command(name="reg_22:00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
+async def reg_22_00(interaction: discord.Interaction):
+    guild_id = interaction.guild.id
+    record = channel_collection.find_one({"guild_id": guild_id})
+
+    if record and "channel_id" in record:
+        channel = interaction.guild.get_channel(record["channel_id"])
+        if channel:
+            message = (
+                ">>> #  __**Registration is Open**__\n\n"
+                "🇬🇪 **00:30**﹒:flag_eu: 🇩🇿 **21:30**\n"
+                "__`𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗿𝗼𝗼𝗺 { 𝟯𝘅 𝗹𝗼𝗼𝗧.}`__\n"
+                "||@everyone @here ||"
+            )
+            await channel.send(message)
+            await interaction.response.send_message("✅ რეგისტრაციის შეტყობინება წარმატებით გაიგზავნა!")
+        else:
+            await interaction.response.send_message("⚠️ არხი ვერ მოიძებნა.")
+    else:
+        await interaction.response.send_message("⚠️ ჯერ არხი არ არის რეგისტრირებული. გამოიყენე /regchannel_22:00.")
+        
 
 # მაგალითი გამოყენების
 @bot.command()
