@@ -48,24 +48,29 @@ async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
 
 
+@bot.event
 async def on_message(message):
-    if message.author.bot:
+    if message.author.bot or not message.guild:
         return
 
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
+    if record:
+        print(f"[DEBUG] Message received in: {message.channel.id}")
+        print(f"[DEBUG] Registered channel ID: {record['channel_id']}")
+
     if record and "channel_id" in record and message.channel.id == record["channel_id"]:
         try:
-            # ✅ რეაქცია შეტყობინებაზე
             await message.add_reaction("✅")
-
-            # მოიძებნოს 22:00 როლი და დაემატოს
             role = message.guild.get_role(record["role_22_00"])
             if role:
                 await message.author.add_roles(role)
+                print(f"[INFO] Role {role.name} added to {message.author.name}")
+            else:
+                print("[ERROR] Role not found")
         except Exception as e:
-            print(f"შეცდომა რეაქციის ან როლის დამატებისას: {e}")
+            print(f"[ERROR] {e}")
 
     await bot.process_commands(message)
 
