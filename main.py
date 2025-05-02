@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import discord
 import asyncio
@@ -37,6 +38,7 @@ channel_collection = db["registered_channels"]
 
 intents = discord.Intents.default()
 intents.members = True  # აუცილებელია წევრების წვდომისთვის
+intents.guilds = True
 intents.message_content = True  # აუცილებელია ტექსტური შეტყობინებების წასაკითხად
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -44,6 +46,28 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     await bot.tree.sync()
     print(f"✅ Bot connected as {bot.user}")
+
+
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    guild_id = message.guild.id
+    record = channel_collection.find_one({"guild_id": guild_id})
+
+    if record and "channel_id" in record and message.channel.id == record["channel_id"]:
+        try:
+            # ✅ რეაქცია შეტყობინებაზე
+            await message.add_reaction("✅")
+
+            # მოიძებნოს 22:00 როლი და დაემატოს
+            role = message.guild.get_role(record["role_22_00"])
+            if role:
+                await message.author.add_roles(role)
+        except Exception as e:
+            print(f"შეცდომა რეაქციის ან როლის დამატებისას: {e}")
+
+    await bot.process_commands(message)
 
 # /regchannel ბრძანება
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
