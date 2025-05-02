@@ -46,13 +46,11 @@ async def on_ready():
 
 # /regchannel ბრძანება
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი და როლები")
-@app_commands.describe(channel_id="ჩაწერე არხის ID", role_22_00="ჩაწერე 22:00 როლი", banned_role="ჩაწერე Banned როლი")
-async def regchannel_22_00(interaction: discord.Interaction, channel_id: int, role_22_00: int, banned_role: int):
+@app_commands.describe(channel="აირჩიე არხი", role_22_00="აირჩიე 22:00 როლი", banned_role="აირჩიე Banned როლი")
+async def regchannel_22_00(interaction: discord.Interaction, channel: discord.TextChannel, role_22_00: discord.Role, banned_role: discord.Role):
     guild_id = interaction.guild.id
-    channel = interaction.guild.get_channel(channel_id)
-    role_22_00 = interaction.guild.get_role(role_22_00)
-    banned_role = interaction.guild.get_role(banned_role)
 
+    # გადამოწმება, რომ არხი და როლები სწორად არიან მიღებული
     if not channel:
         await interaction.response.send_message("⚠️ არხი ვერ მოიძებნა.")
         return
