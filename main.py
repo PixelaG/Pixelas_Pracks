@@ -32,7 +32,8 @@ async def regchannel(interaction: discord.Interaction, channel: discord.TextChan
         {"$set": {"channel_id": channel.id}},
         upsert=True
     )
-    await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
+    if not interaction.response.is_done():
+        await interaction.response.send_message(f"✅ არხი `{channel.name}` წარმატებით დარეგისტრირდა ყველასთვის 🎉")
 
 # მაგალითი გამოყენების
 @bot.command()
