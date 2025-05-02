@@ -44,8 +44,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
-    print(f"✅ Bot connected as {bot.user}")
+    await bot.wait_until_ready()
+    try:
+        synced = await bot.tree.sync()
+        print(f"🔧 Synced {len(synced)} commands")
+    except Exception as e:
+        print(f"❌ Failed to sync commands: {e}")
 
 
 @bot.event
@@ -154,7 +158,7 @@ async def createteamlist(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
         return
 
-    team_channel_id = record.get("channel_id")  # გამოიყენე იგივე channel_id რაც რეგისტრაციისთვის
+    team_channel_id = record.get("teamlist_channel")  # ✅ აქ ვიღებთ Team List არხის ID-ს MongoDB-დან
     team_channel = interaction.guild.get_channel(team_channel_id)
     if not team_channel:
         await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
