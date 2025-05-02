@@ -23,9 +23,9 @@ def keep_alive():
 keep_alive()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-mongo_uri = os.getenv("MONGODB_URI")
+mongo_uri = os.getenv("MONGO_URI")
 
-# MongoDB კავშირი (AsyncIOMotorClient)
+# MongoDB კავშირი 
 client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
