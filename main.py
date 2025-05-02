@@ -149,7 +149,7 @@ async def reg_22_00(interaction: discord.Interaction):
     except Exception as e:
         print(f"Error sending response: {e}")
 
-@bot.tree.command(name="createteamlist", description="შექმენი Team List არხში 00:30 Team List")
+@bot.tree.command(name="createteamlist", description="შექმენი Team List 22:00")
 async def createteamlist(interaction: discord.Interaction):
     guild_id = interaction.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
@@ -166,16 +166,22 @@ async def createteamlist(interaction: discord.Interaction):
 
     users = record["registered_users"]
     lines = [
-        f"> {i+1}. <a:h_:1306037163187507291> {users[i]}" if i < len(users)
-        else f"> {i+1}. <a:h_:1306037163187507291>"
+        f"𝟬{i+1}." if i < 9 else f"𝟭{i-8}." if i < 14 else f"𝟭{i-8}." if i < 20 else f"𝟮{i-20}."
+        for i in range(25)
+    ]
+
+    user_lines = [
+        f"> {lines[i]} {users[i]}" if i < len(users)
+        else f"> {lines[i]}"
         for i in range(25)
     ]
 
     message = (
-        "<a:darkredheartspin:1308111587575599165>    __**00:30 Team List**__   <a:darkredheartspin:1308111587575599165>\n\n"
-        + "\n".join(lines) +
-        "\n\n           <a:777redfire:1058019861302882314>   __𝑇𝐴𝐾𝐸 𝑌𝑂𝑈𝑅 𝑆𝐿𝑂𝑇𝑆__ <a:777redfire:1058019861302882314>\n"
-        "                   <a:777redfire:1058019861302882314> __𝐺𝑂𝑂𝐷 𝐿𝑈𝐶𝐾__ <a:777redfire:1058019861302882314>"
+        "> \n"
+        ">                  __**TEAM LIST**__\n"
+        ">                        **22:00**\n"
+        + "\n".join(user_lines) +
+        "\n>\n> || @everyone  ||"
     )
 
     await team_channel.send(message)
