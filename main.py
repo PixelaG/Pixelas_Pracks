@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from flask import Flask
 from threading import Thread
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient 
 import os
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 mongo_uri = os.getenv("MONGODB_URI")
 
 # MongoDB კავშირი (AsyncIOMotorClient)
-client = AsyncIOMotorClient(mongo_uri)
+client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 
