@@ -77,13 +77,13 @@ async def on_message(message):
                 else:
                     print("[ERROR] 22:00 role not found")
 
-                # MongoDB-ში მომხმარებლის დამატება
+                # შეტყობინების ტექსტის დამატება registered_messages-ში
                 channel_collection.update_one(
                     {"guild_id": guild_id},
-                    {"$addToSet": {"registered_users": message.author.name}},
+                    {"$addToSet": {"registered_messages": message.content}},
                     upsert=True
                 )
-                print(f"[INFO] {message.author.name} added to registered users.")
+                print(f"[INFO] Message '{message.content}' added to registered_messages.")
         except Exception as e:
             print(f"[ERROR] {e}")
             
@@ -154,8 +154,8 @@ async def createteamlist(interaction: discord.Interaction):
     guild_id = interaction.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
-    if not record or "registered_users" not in record:
-        await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
+    if not record or "registered_messages" not in record:
+        await interaction.response.send_message("⚠️ ჯერ არ არის შეტყობინება რეგისტრირებული.")
         return
 
     team_channel_id = record.get("teamlist_channel")
@@ -164,7 +164,7 @@ async def createteamlist(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
         return
 
-    users = record["registered_users"]
+    messages = record["registered_messages"]
 
     # ფორმატირებული ციფრები unicode მრგვალი სტილში (𝟬𝟭, 𝟭𝟬, და ა.შ.)
     def to_fancy_number(n):
@@ -172,7 +172,7 @@ async def createteamlist(interaction: discord.Interaction):
         return ''.join(num_map[d] for d in f"{n:02}")
 
     lines = [
-        f"> {to_fancy_number(i + 1)}. {users[i]}" if i < len(users)
+        f"> {to_fancy_number(i + 1)}. {messages[i]}" if i < len(messages)
         else f"> {to_fancy_number(i + 1)}."
         for i in range(25)
     ]
@@ -187,6 +187,9 @@ async def createteamlist(interaction: discord.Interaction):
 
     await team_channel.send(message)
     await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
+
+    except Exception as e:
+        print(f"Error sending response: {e}")
         
 
 # მაგალითი გამოყენების
