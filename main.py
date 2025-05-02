@@ -144,6 +144,38 @@ async def reg_22_00(interaction: discord.Interaction):
 
     except Exception as e:
         print(f"Error sending response: {e}")
+
+@bot.tree.command(name="createteamlist", description="შექმენი Team List არხში 00:30 Team List")
+async def createteamlist(interaction: discord.Interaction):
+    guild_id = interaction.guild.id
+    record = channel_collection.find_one({"guild_id": guild_id})
+
+    if not record or "registered_users" not in record:
+        await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
+        return
+
+    team_channel_id = record.get("channel_id")  # გამოიყენე იგივე channel_id რაც რეგისტრაციისთვის
+    team_channel = interaction.guild.get_channel(team_channel_id)
+    if not team_channel:
+        await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
+        return
+
+    users = record["registered_users"]
+    lines = [
+        f"> {i+1}.<a:h_:1306037163187507291> {users[i]}" if i < len(users)
+        else f"> {i+1}.<a:h_:1306037163187507291>"
+        for i in range(25)
+    ]
+
+    message = (
+        "<a:darkredheartspin:1308111587575599165>    __**00:30 Team List**__   <a:darkredheartspin:1308111587575599165>\n\n"
+        + "\n".join(lines) +
+        "\n\n           <a:777redfire:1058019861302882314>   __𝑇𝐴𝐾𝐸 𝑌𝑂𝑈𝑅 𝑆𝐿𝑂𝑇𝑆__ <a:777redfire:1058019861302882314>\n"
+        "                   <a:777redfire:1058019861302882314> __𝐺𝑂𝑂𝐷 𝐿𝑈𝐶𝐾__ <a:777redfire:1058019861302882314>"
+    )
+
+    await team_channel.send(message)
+    await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
         
 
 # მაგალითი გამოყენების
