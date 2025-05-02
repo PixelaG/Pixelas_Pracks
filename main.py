@@ -84,8 +84,9 @@ async def reg_22_00(interaction: discord.Interaction):
                 "__`𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗿𝗼𝗼𝗺 { 𝟯𝘅 𝗹𝗼𝗼𝗧.}`__\n"
                 "||@everyone @here ||"
             )
+            await interaction.response.defer()  # დროებითი პასუხი
             await channel.send(message)
-            await interaction.response.send_message("✅ რეგისტრაციის შეტყობინება წარმატებით გაიგზავნა!")
+            await interaction.followup.send("✅ რეგისტრაციის შეტყობინება წარმატებით გაიგზავნა!")  # მეორადი პასუხი
         else:
             await interaction.response.send_message("⚠️ არხი ვერ მოიძებნა.")
     else:
