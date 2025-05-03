@@ -92,6 +92,7 @@ async def on_message(message):
 # /regchannel ბრძანება
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
 @app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
+@app_commands.checks.has_permissions(administrator=True)
 async def regchannel_22_00(
     interaction: discord.Interaction,
     channel: discord.TextChannel,
@@ -123,6 +124,7 @@ async def regchannel_22_00(
 
 
 @bot.tree.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
+@app_commands.checks.has_permissions(administrator=True)
 async def reg_22_00(interaction: discord.Interaction):
     try:
         await interaction.response.defer()  # მხოლოდ ერთხელ უნდა მოხდეს acknowledgment
@@ -150,6 +152,7 @@ async def reg_22_00(interaction: discord.Interaction):
         print(f"Error sending response: {e}")
 
 @bot.tree.command(name="createteamlist", description="შექმენი Team List 22:00")
+@app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
     try:
         guild_id = interaction.guild.id
@@ -200,6 +203,7 @@ async def createteamlist(interaction: discord.Interaction):
         print(f"Error sending response: {e}")
 
 @bot.tree.command(name="clearlist", description="წაშალე Team List")
+@app_commands.checks.has_permissions(administrator=True)
 async def clearlist(interaction: discord.Interaction):
     try:
         guild_id = interaction.guild.id
@@ -226,6 +230,16 @@ async def clearlist(interaction: discord.Interaction):
     except Exception as e:
         print(f"Error during clearing: {e}")
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
+
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.errors.MissingPermissions):
+        await interaction.response.send_message("❌ ამ ქომანდის გამოყენება მხოლოდ ადმინს შეუძლია.", ephemeral=True)
+    else:
+        await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+        print(f"Error: {error}")
         
 
 # მაგალითი გამოყენების
