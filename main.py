@@ -171,12 +171,17 @@ async def createteamlist(interaction: discord.Interaction):
             num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
             return ''.join(num_map[d] for d in f"{n:02}")
 
+        # Create the lines starting from 25 and moving down to 1, with the messages starting from 25
         lines = [
-          f"> {to_fancy_number(i)}. {messages[25 - i]}" if 25 - i < len(messages)
-          else f"> {to_fancy_number(i)}."
-          for i in range(25, 0, -1)
-         ]
+            f"> {to_fancy_number(i)}. {messages[25 - i]}" if 25 - i < len(messages)
+            else f"> {to_fancy_number(i)}."
+            for i in range(25, 0, -1)
+        ]
 
+        # Reverse the lines to make sure that 25 is at the top and 1 is at the bottom
+        lines.reverse()
+
+        # Construct the message with the updated order
         message = (
             "> \n"
             ">                  __**TEAM LIST**__\n"
@@ -185,26 +190,42 @@ async def createteamlist(interaction: discord.Interaction):
             "\n>\n> || @everyone  ||"
         )
 
+        # Send the message to the Team List channel
         await team_channel.send(message)
+
+        # Confirm to the user that the Team List was successfully sent
         await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
 
     except Exception as e:
         print(f"Error sending response: {e}")
 
-@bot.tree.command(name="clearlist", description="წაშალე Team List ამ სერვერზე.")
-@app_commands.checks.has_permissions(administrator=True)
+@bot.tree.command(name="clearlist", description="წაშალე Team List")
 async def clearlist(interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True)
-
     try:
-        server_id = str(interaction.guild.id)
-        await collection.delete_one({"server_id": server_id})
-        await interaction.followup.send("✅ Team List წარმატებით წაიშალა!", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ წაშლის დროს მოხდა შეცდომა: {e}", ephemeral=True)
+        guild_id = interaction.guild.id
+        record = channel_collection.find_one({"guild_id": guild_id})
+
+        if not record or "registered_messages" not in record:
+            await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
+            return
+
+        team_channel_id = record.get("teamlist_channel")
+        team_channel = interaction.guild.get_channel(team_channel_id)
+        if not team_channel:
+            await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
+            return
+
+        # Clear the registered messages
+        channel_collection.update_one(
+            {"guild_id": guild_id},
+            {"$set": {"registered_messages": []}}
+        )
+
+        await interaction.response.send_message("✅ Team List წარმატებით წაიშალა!", ephemeral=True)
 
     except Exception as e:
-        print(f"Error sending response: {e}")
+        print(f"Error during clearing: {e}")
+        await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
         
 
 # მაგალითი გამოყენების
