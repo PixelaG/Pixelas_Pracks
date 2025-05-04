@@ -89,6 +89,19 @@ async def on_message(message):
             
     await bot.process_commands(message)
 
+async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
+    embed = discord.Embed(title=title, description=description, color=color)
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+    except discord.NotFound:
+        print("⚠ Interaction უკვე ამოიწურა ან გაუქმდა.")
+    except discord.HTTPException as e:
+        print(f"⚠ HTTP შეცდომა Embed-ის გაგზავნისას: {e}")
+        
+
 async def check_user_permissions(interaction, required_role_id: int, guild_id: int):
     home_guild = discord.utils.get(bot.guilds, id=guild_id)
     if not home_guild:
