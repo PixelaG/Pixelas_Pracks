@@ -78,6 +78,7 @@ async def on_ready():
         print(f"შეცდომა როლების აღდგენისას: {e}")
     
     try:
+        await tree.sync()
         await bot.tree.sync()
         print(Fore.GREEN + "✅ Slash commands synced successfully.")
     except Exception as e:
