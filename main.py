@@ -303,10 +303,11 @@ async def reg_22_00(interaction: discord.Interaction):
     except Exception as e:
         print(f"Error sending response: {e}")
 
-@bot.tree.command(name="createteamlist", description="შექმენი Team List 22:00")
+@tree.command(name="createteamlist_22_00", description="შექმნის Team List 22:00")
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
 
     member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
     if not member:
@@ -350,12 +351,15 @@ async def createteamlist(interaction: discord.Interaction):
         )
 
         await team_channel.send(message)
-        await interaction.followup.send("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
+        await asyncio.sleep(2)
+        await interaction.followup.send("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        await interaction.followup.send("❌ შეცდომა მოხდა Team List-ის გაგზავნისას.", ephemeral=True)
+        print(f"Error in createteamlist: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+        else:
+            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
 @bot.tree.command(name="clearlist", description="წაშალე Team List")
 @app_commands.checks.has_permissions(administrator=True)
@@ -525,12 +529,12 @@ async def invite_prefix_command(ctx):
 
 
 @bot.tree.error
-async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    if isinstance(error, app_commands.errors.MissingPermissions):
-        await interaction.response.send_message("❌ ამ ქომანდის გამოყენება მხოლოდ ადმინს შეუძლია.", ephemeral=True)
-    else:
+async def on_app_command_error(interaction: discord.Interaction, error):
+    print(f"Command Error: {error}")
+    if not interaction.response.is_done():
         await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
-        print(f"Error: {error}")
+    else:
+        await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
         
 
 # მაგალითი გამოყენების
