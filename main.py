@@ -89,6 +89,32 @@ async def on_message(message):
             
     await bot.process_commands(message)
 
+async def check_user_permissions(interaction, required_role_id: int, guild_id: int):
+    home_guild = discord.utils.get(bot.guilds, id=guild_id)
+    if not home_guild:
+        await send_embed_notification(interaction, "⚠️ მთავარი სერვერი არ არის ნაპოვნი", "⌚️ სცადეთ მოგვიანებით.")
+        return None
+
+    try:
+        member = await home_guild.fetch_member(interaction.user.id)
+    except discord.NotFound:
+        await send_embed_notification(
+            interaction,
+            "⛔️ თქვენ არ ხართ მთავარ სერვერზე",
+            "🌐 შემოგვიერთდით ახლავე [Server](https://discord.gg/byScSM6T9Q)"
+        )
+        return None
+
+    if not any(role.id == required_role_id for role in member.roles):
+        await send_embed_notification(
+            interaction,
+            "🚫 თქვენ არ შეგიძლიათ ამ ფუნქციის გამოყენება",
+            "💸 შესაძენად ეწვიეთ სერვერს [Server](https://discord.gg/byScSM6T9Q) 💸"
+        )
+        return None
+
+    return member
+
 # /regchannel ბრძანება
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
 @app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
@@ -126,6 +152,11 @@ async def regchannel_22_00(
 @bot.tree.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
 @app_commands.checks.has_permissions(administrator=True)
 async def reg_22_00(interaction: discord.Interaction):
+
+    member = await check_user_permissions(interaction, 1365076710265192590, 1005186618031869952)
+    if not member:
+       return
+    
     try:
         await interaction.response.defer()  # მხოლოდ ერთხელ უნდა მოხდეს acknowledgment
 
