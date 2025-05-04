@@ -56,7 +56,8 @@ async def on_ready():
         # აღადგინე აქტიური როლები ბოტის რესტარტის შემთხვევაში
         now = datetime.utcnow()
         await bot.change_presence(
-        activity=discord.Game(name="PUBG Mobile 🎮")     
+        activity=discord.Game(name="PUBG Mobile 🎮")
+    )
             
         for entry in active_entries:
             guild = bot.get_guild(entry["guild_id"])
