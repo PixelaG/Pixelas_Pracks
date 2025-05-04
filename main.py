@@ -36,8 +36,6 @@ client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 
-    GUILD_ID = 1005186618031869952
-    ROLE_ID = 1368589143546003587
 
 intents = discord.Intents.default()
 intents.members = True  # აუცილებელია წევრების წვდომისთვის
@@ -91,6 +89,54 @@ async def on_message(message):
             print(f"[ERROR] {e}")
             
     await bot.process_commands(message)
+
+async def check_expired_roles():
+    """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
+    while True:
+        try:
+            now = datetime.utcnow()
+            expired_entries = access_entries.find({"expiry_time": {"$lt": now}})
+            
+            for entry in expired_entries:
+                guild = bot.get_guild(entry["guild_id"])
+                if not guild:
+                    continue
+                
+                try:
+                    member = await guild.fetch_member(entry["user_id"])
+                    role = guild.get_role(entry["role_id"])
+                    
+                    if role and member and role in member.roles:
+                        await member.remove_roles(role)
+                        
+                        # ლოგირება
+                        log_channel = guild.get_channel(entry["log_channel_id"])
+                        if log_channel:
+                            expired_embed = discord.Embed(
+                                title="⏰ დაკარგა წვდომა ",
+                                description=f"{member.mention}-ს აღარ აქვს {role.name} როლი",
+                                color=discord.Color.red()
+                            )
+                            expired_embed.add_field(
+                                name="🔚 ვადა გაუვიდა",
+                                value=f"<t:{int(entry['expiry_time'].timestamp())}:F>",
+                                inline=True
+                            )
+                            await log_channel.send(embed=expired_embed)
+                    
+                    # წაშალე ჩანაწერი ბაზიდან
+                    access_entries.delete_one({"_id": entry["_id"]})
+                
+                except discord.NotFound:
+                    access_entries.delete_one({"_id": entry["_id"]})
+                except Exception as e:
+                    print(f"შეცდომა როლის ამოღებისას: {e}")
+        
+        except Exception as e:
+            print(f"შეცდომა check_expired_roles-ში: {e}")
+        
+        await asyncio.sleep(60)
+
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
     embed = discord.Embed(title=title, description=description, color=color)
