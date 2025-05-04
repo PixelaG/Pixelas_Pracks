@@ -114,7 +114,10 @@ async def on_message(message):
 
             channel_collection.update_one(
                 {"guild_id": guild_id},
-                {"$addToSet": {"registered_messages": message.content}},
+                {"$addToSet": {"registered_messages": {
+                    "message_id": message.id,
+                    "content": message.content
+                }}},
                 upsert=True
             )
 
@@ -122,6 +125,29 @@ async def on_message(message):
             print(f"[ERROR] {e}")
 
     await bot.process_commands(message)
+
+@bot.event
+async def on_message_edit(before, after):
+    if after.author.bot or not after.guild:
+        return
+
+    guild_id = after.guild.id
+    record = channel_collection.find_one({"guild_id": guild_id})
+    if not record or "channel_id" not in record or after.channel.id != record["channel_id"]:
+        return
+
+    pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+    if not re.match(pattern, after.content.strip()):
+        return
+
+    updated = channel_collection.update_one(
+        {"guild_id": guild_id, "registered_messages.message_id": after.id},
+        {"$set": {"registered_messages.$.content": after.content}}
+    )
+
+    if updated.modified_count:
+        print(f"[INFO] Updated message {after.id} with new content.")
+        
 
 async def check_expired_roles():
     """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
@@ -277,14 +303,13 @@ async def reg_22_00(interaction: discord.Interaction):
     except Exception as e:
         print(f"Error sending response: {e}")
 
-@bot.tree.command(name="createteamlist", description="შექმენი Team List 22:00")
+@bot.tree.command(name="createteamlist_22_00", description="შექმენი Team List 22:00")
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
-
     member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
     if not member:
-       return
-    
+        return
+
     try:
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
@@ -299,23 +324,21 @@ async def createteamlist(interaction: discord.Interaction):
             await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
             return
 
-        messages = record["registered_messages"]
+        entries = record["registered_messages"]
+        messages = [entry["content"] for entry in entries]
 
         def to_fancy_number(n):
             num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
             return ''.join(num_map[d] for d in f"{n:02}")
 
-        # Create the lines starting from 25 and moving down to 1, with the messages starting from 25
         lines = [
             f"> {to_fancy_number(i)}. {messages[25 - i]}" if 25 - i < len(messages)
             else f"> {to_fancy_number(i)}."
             for i in range(25, 0, -1)
         ]
 
-        # Reverse the lines to make sure that 25 is at the top and 1 is at the bottom
         lines.reverse()
 
-        # Construct the message with the updated order
         message = (
             "> \n"
             ">                  __**TEAM LIST**__\n"
@@ -324,14 +347,11 @@ async def createteamlist(interaction: discord.Interaction):
             "\n>\n> || @everyone  ||"
         )
 
-        # Send the message to the Team List channel
         await team_channel.send(message)
-
-        # Confirm to the user that the Team List was successfully sent
         await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
 
     except Exception as e:
-        print(f"Error sending response: {e}")
+        print(f"[ERROR] {e}")
 
 @bot.tree.command(name="clearlist", description="წაშალე Team List")
 @app_commands.checks.has_permissions(administrator=True)
