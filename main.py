@@ -100,25 +100,34 @@ async def on_message(message):
             if banned_role in message.author.roles:
                 await message.add_reaction("❌")
                 print(f"[INFO] {message.author.name} has banned role, no 22:00 role assigned.")
-            else:
-                await message.add_reaction("✅")
-                role = message.guild.get_role(record["role_22_00"])
-                if role:
-                    await message.author.add_roles(role)
-                    print(f"[INFO] Role {role.name} added to {message.author.name}")
-                else:
-                    print("[ERROR] 22:00 role not found")
+                return
+            
+            # ტექსტის ფორმატის შემოწმება
+            pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+            if not re.match(pattern, message.content.strip()):
+                await message.add_reaction("❌")
+                print(f"[INFO] Invalid message format from {message.author.name}: {message.content}")
+                return
 
-                # შეტყობინების ტექსტის დამატება registered_messages-ში
-                channel_collection.update_one(
-                    {"guild_id": guild_id},
-                    {"$addToSet": {"registered_messages": message.content}},
-                    upsert=True
-                )
-                print(f"[INFO] Message '{message.content}' added to registered_messages.")
+            # სწორი შეტყობინებაა — მივანიჭოთ როლი და დავამატოთ ბაზაში
+            await message.add_reaction("✅")
+            role = message.guild.get_role(record["role_22_00"])
+            if role:
+                await message.author.add_roles(role)
+                print(f"[INFO] Role {role.name} added to {message.author.name}")
+            else:
+                print("[ERROR] 22:00 role not found")
+
+            channel_collection.update_one(
+                {"guild_id": guild_id},
+                {"$addToSet": {"registered_messages": message.content}},
+                upsert=True
+            )
+            print(f"[INFO] Message '{message.content}' added to registered_messages.")
+
         except Exception as e:
             print(f"[ERROR] {e}")
-            
+    
     await bot.process_commands(message)
 
 async def check_expired_roles():
