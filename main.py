@@ -303,9 +303,11 @@ async def reg_22_00(interaction: discord.Interaction):
     except Exception as e:
         print(f"Error sending response: {e}")
 
-@bot.tree.command(name="createteamlist_22_00", description="შექმენი Team List 22:00")
+@bot.tree.command(name="createteamlist", description="შექმენი Team List 22:00")
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
     member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
     if not member:
         return
@@ -315,13 +317,13 @@ async def createteamlist(interaction: discord.Interaction):
         record = channel_collection.find_one({"guild_id": guild_id})
 
         if not record or "registered_messages" not in record:
-            await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
+            await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
             return
 
         team_channel_id = record.get("teamlist_channel")
         team_channel = interaction.guild.get_channel(team_channel_id)
         if not team_channel:
-            await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
+            await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
             return
 
         entries = record["registered_messages"]
@@ -348,10 +350,12 @@ async def createteamlist(interaction: discord.Interaction):
         )
 
         await team_channel.send(message)
-        await interaction.response.send_message("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
+        await interaction.followup.send("✅ Team List წარმატებით გამოიგზავნა!", ephemeral=True)
 
     except Exception as e:
-        print(f"[ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        await interaction.followup.send("❌ შეცდომა მოხდა Team List-ის გაგზავნისას.", ephemeral=True)
 
 @bot.tree.command(name="clearlist", description="წაშალე Team List")
 @app_commands.checks.has_permissions(administrator=True)
