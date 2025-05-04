@@ -303,7 +303,7 @@ async def reg_22_00(interaction: discord.Interaction):
     except Exception as e:
         print(f"Error sending response: {e}")
 
-@tree.command(name="createteamlist_22_00", description="შექმნის Team List 22:00")
+@bot.tree.command(name="createteamlist_22_00", description="შექმნის Team List 22:00")
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
     try:
