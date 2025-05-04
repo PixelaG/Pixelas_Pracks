@@ -35,6 +35,7 @@ mongo_uri = os.getenv("MONGO_URI")
 client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
+access_entries = db["access_entries"]
 
 
 intents = discord.Intents.default()
@@ -51,6 +52,9 @@ async def on_ready():
         print(f"🔧 Synced {len(synced)} commands")
     except Exception as e:
         print(f"❌ Failed to sync commands: {e}")
+    
+    # წამოიწყეთ როლების შესამოწმებელი ფუნქცია
+    bot.loop.create_task(check_expired_roles())
 
 
 @bot.event
