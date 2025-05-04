@@ -452,7 +452,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
 
         # EMBED - წვდომის ლოგი PUBG სტილში
         log_embed = discord.Embed(
-            title="🎖 წვდომა გაცემულია",
+            title="🎖 წვდომა გაცემულია (Pixelas Pracks)",
             description="🛡 **Access Granted to the Squad Member**",
             color=discord.Color.gold()
         )
