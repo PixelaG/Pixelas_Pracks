@@ -251,6 +251,11 @@ async def reg_22_00(interaction: discord.Interaction):
 @bot.tree.command(name="createteamlist", description="შექმენი Team List 22:00")
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
+
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    if not member:
+       return
+    
     try:
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
@@ -302,6 +307,11 @@ async def createteamlist(interaction: discord.Interaction):
 @bot.tree.command(name="clearlist", description="წაშალე Team List")
 @app_commands.checks.has_permissions(administrator=True)
 async def clearlist(interaction: discord.Interaction):
+
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    if not member:
+       return
+    
     try:
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
