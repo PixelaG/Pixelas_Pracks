@@ -307,13 +307,15 @@ async def reg_22_00(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
     try:
+        #.defer for awaiting message followup without blocking
         await interaction.response.defer(ephemeral=True)
 
-    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
-    if not member:
-        return
+        # Check user permissions
+        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+        if not member:
+            return
 
-    try:
+        # Database Interaction
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
 
@@ -321,12 +323,14 @@ async def createteamlist(interaction: discord.Interaction):
             await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
             return
 
+        # Find the team channel
         team_channel_id = record.get("teamlist_channel")
         team_channel = interaction.guild.get_channel(team_channel_id)
         if not team_channel:
             await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
             return
 
+        # Process registered messages
         entries = record["registered_messages"]
         messages = [entry["content"] for entry in entries]
 
@@ -357,7 +361,7 @@ async def createteamlist(interaction: discord.Interaction):
     except Exception as e:
         print(f"Error in createteamlist: {e}")
         if not interaction.response.is_done():
-            await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
         else:
             await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
