@@ -36,6 +36,9 @@ client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 
+    GUILD_ID = 1005186618031869952
+    ROLE_ID = 1368589143546003587
+
 intents = discord.Intents.default()
 intents.members = True  # აუცილებელია წევრების წვდომისთვის
 intents.guilds = True
@@ -166,7 +169,7 @@ async def regchannel_22_00(
 @app_commands.checks.has_permissions(administrator=True)
 async def reg_22_00(interaction: discord.Interaction):
 
-    member = await check_user_permissions(interaction, 1365076710265192590, 1005186618031869952)
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
     if not member:
        return
     
