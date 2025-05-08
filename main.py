@@ -520,7 +520,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
 
 @bot.tree.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან")
 @app_commands.checks.has_permissions(administrator=True)
-async def unlist(interaction: Interaction, message_id: str):
+async def unlist(interaction: discord.Interaction, message_id: str):
     member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
     if not member:
         return
