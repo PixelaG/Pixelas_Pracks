@@ -549,11 +549,12 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_long]
 
         if len(new_list) == len(registered_messages):
-            await interaction.response.send_message("⚠️ მითითებული ID ვერ მოიძებნა სიაში.", ephemeral=True)
+        print("No message was removed, check the message_id formatting.")
+        await interaction.response.send_message("⚠️ მითითებული ID ვერ მოიძებნა სიაში.", ephemeral=True)
             return
 
         # განახლება MongoDB-ში
-        db["registered_channels"].update_one(
+        await channel_collection.update_one(
             {"guild_id": guild_id},
             {"$set": {"registered_messages": new_list}}
         )
