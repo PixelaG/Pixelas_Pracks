@@ -559,7 +559,7 @@ async def unlist(interaction: discord.Interaction, message_id: str):
             {"$set": {"registered_messages": new_list}}
         )
 
-        await interaction.response.send_message(f"✅ შეტყობინება ID {message_id} წარმატებით ამოღებულია სიიდან!", ephemeral=True)
+        await interaction.response.send_message(f"✅ შეტყობინება ID {message_id} წარმატებით ამოღებულია Team List - იდან!", ephemeral=True)
 
     except Exception as e:
         print(f"Error during unlisting: {e}")
