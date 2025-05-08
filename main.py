@@ -31,7 +31,7 @@ keep_alive()
 TOKEN = os.getenv("DISCORD_TOKEN")
 mongo_uri = os.getenv("MONGO_URI")
 
-# MongoDB კავშირი 
+
 client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
@@ -39,9 +39,9 @@ access_entries = db["access_entries"]
 
 
 intents = discord.Intents.default()
-intents.members = True  # აუცილებელია წევრების წვდომისთვის
+intents.members = True  
 intents.guilds = True
-intents.message_content = True # აუცილებელია ტექსტური შეტყობინებების წასაკითხად
+intents.message_content = True 
 intents.messages = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -50,11 +50,10 @@ async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
     await bot.change_presence(status=discord.Status.invisible)
     
-    # დაწყება ვადაგასული როლების შემოწმების
+    
     bot.loop.create_task(check_expired_roles())
     
     try:
-        # აღადგინე აქტიური როლები ბოტის რესტარტის შემთხვევაში
         now = datetime.utcnow()
         await bot.change_presence(
         activity=discord.Game(name="PUBG Mobile 🎮")
@@ -102,12 +101,10 @@ async def on_message(message):
                 await message.add_reaction("❌")
                 return
             
-            # ტექსტის ფორმატის შემოწმება (არ დავადოთ რეაქცია ❌)
             pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
             if not re.match(pattern, message.content.strip()):
                 return
 
-            # სწორი შეტყობინებაა
             await message.add_reaction("✅")
             role = message.guild.get_role(record["role_22_00"])
             if role:
@@ -169,7 +166,6 @@ async def check_expired_roles():
                     if role and member and role in member.roles:
                         await member.remove_roles(role)
                         
-                        # ლოგირება
                         log_channel = guild.get_channel(entry["log_channel_id"])
                         if log_channel:
                             expired_embed = discord.Embed(
@@ -184,7 +180,6 @@ async def check_expired_roles():
                             )
                             await log_channel.send(embed=expired_embed)
                     
-                    # წაშალე ჩანაწერი ბაზიდან
                     access_entries.delete_one({"_id": entry["_id"]})
                 
                 except discord.NotFound:
@@ -237,7 +232,6 @@ async def check_user_permissions(interaction, required_role_id: int, guild_id: i
 
     return member
 
-# /regchannel ბრძანება
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
 @app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
 @app_commands.checks.has_permissions(administrator=True)
@@ -250,7 +244,6 @@ async def regchannel_22_00(
 ):
     guild_id = interaction.guild.id
 
-    # MongoDB-ში მონაცემების შენახვა (შედის teamlist_channel.id)
     channel_collection.update_one(
         {"guild_id": guild_id},
         {"$set": {
@@ -280,7 +273,7 @@ async def reg_22_00(interaction: discord.Interaction):
        return
     
     try:
-        await interaction.response.defer()  # მხოლოდ ერთხელ უნდა მოხდეს acknowledgment
+        await interaction.response.defer()  
 
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
@@ -308,15 +301,15 @@ async def reg_22_00(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
     try:
-        #.defer for awaiting message followup without blocking
+        
         await interaction.response.defer(ephemeral=True)
 
-        # Check user permissions
+        
         member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
         if not member:
             return
 
-        # Database Interaction
+       
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
 
@@ -324,14 +317,14 @@ async def createteamlist(interaction: discord.Interaction):
             await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
             return
 
-        # Find the team channel
+        
         team_channel_id = record.get("teamlist_channel")
         team_channel = interaction.guild.get_channel(team_channel_id)
         if not team_channel:
             await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
             return
 
-        # Process registered messages
+        
         entries = record["registered_messages"]
         messages = [entry["content"] for entry in entries]
 
@@ -366,6 +359,8 @@ async def createteamlist(interaction: discord.Interaction):
         else:
             await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
+
+
 @bot.tree.command(name="clearlist", description="წაშალე Team List")
 @app_commands.checks.has_permissions(administrator=True)
 async def clearlist(interaction: discord.Interaction):
@@ -388,7 +383,7 @@ async def clearlist(interaction: discord.Interaction):
             await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.")
             return
 
-        # Clear the registered messages
+        
         channel_collection.update_one(
             {"guild_id": guild_id},
             {"$set": {"registered_messages": []}}
@@ -401,11 +396,8 @@ async def clearlist(interaction: discord.Interaction):
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
-# /giveaccess command - ONLY FOR BOT OWNER
-@app_commands.describe(
-    user="მომხმარებელი, რომელსაც უნდა მიეცეს წვდომა",
-    duration="დრო (მაგ. 1d, 5h, 30m)"
-)
+
+@app_commands.describe(user="მომხმარებელი, რომელსაც უნდა მიეცეს წვდომა",duration="დრო (მაგ. 1d, 5h, 30m)")
 @bot.tree.command(name="giveaccess", description="⚔️ მიანიჭეთ წვდომა მებრძოლს (მხოლოდ მფლობელისთვის)")
 async def giveaccess(interaction: discord.Interaction, user: discord.User, duration: str):
     await bot.wait_until_ready()
@@ -424,7 +416,6 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
     LOG_CHANNEL_ID = 1365381000619622460
 
     try:
-        # დროის პარსინგი
         time_unit = duration[-1].lower()
         time_value = duration[:-1]
 
@@ -453,7 +444,6 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
 
         expiry_time = datetime.utcnow() + delta
 
-        # სერვერისა და მომხმარებლის პოვნა
         target_guild = bot.get_guild(GUILD_ID)
         if not target_guild:
             await send_embed_notification(interaction, "🌐 სერვერი არ მოიძებნა", "დარწმუნდით, რომ ბოტი დაკავშირებულია სერვერთან")
@@ -470,10 +460,8 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
             await send_embed_notification(interaction, "🎖 როლი დაკარგულია", "დარწმუნდით, რომ წვდომის როლი არსებობს")
             return
 
-        # როლის მინიჭება
         await target_member.add_roles(access_role)
 
-        # MongoDB-ში შენახვა
         access_entry = {
             "user_id": target_member.id,
             "guild_id": target_guild.id,
@@ -487,7 +475,6 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         }
         access_entries.insert_one(access_entry)
 
-        # EMBED - წვდომის ლოგი PUBG სტილში
         log_embed = discord.Embed(
             title="🎖 წვდომა გაცემულია (Pixelas Pracks)",
             description="🛡 **Access Granted to the Squad Member**",
@@ -504,7 +491,6 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         if log_channel:
             await log_channel.send(embed=log_embed)
 
-        # პასუხი მფლობელს
         await send_embed_notification(
             interaction,
             "✅ წვდომა გაცემულია",
@@ -528,7 +514,6 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 
     try:
         guild_id = interaction.guild.id
-        # შეცვალეთ collection-ის სახელი
         record = db["registered_channels"].find_one({"guild_id": guild_id})
 
         if not record or "registered_messages" not in record:
@@ -537,7 +522,6 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 
         registered_messages = record["registered_messages"]
 
-        # ვცდილობთ message_id-ი გავხადოთ int
         try:
             message_id_long = int(message_id)
         except ValueError:
@@ -545,7 +529,6 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 
         print(f"Looking for message_id: {message_id_long}")
 
-        # მოძებნოს შეტყობინება მოცემული ID-ით
         new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_long]
 
         if len(new_list) == len(registered_messages):
@@ -553,7 +536,6 @@ async def unlist(interaction: discord.Interaction, message_id: str):
             await interaction.response.send_message("⚠️ მითითებული ID ვერ მოიძებნა სიაში.", ephemeral=True)
             return
 
-        # განახლება MongoDB-ში
         db["registered_channels"].update_one(
             {"guild_id": guild_id},
             {"$set": {"registered_messages": new_list}}
@@ -589,7 +571,6 @@ async def on_app_command_error(interaction: discord.Interaction, error):
         await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
         
 
-# მაგალითი გამოყენების
 @bot.command()
 async def send(ctx, *, message: str):
     guild_id = ctx.guild.id
