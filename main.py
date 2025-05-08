@@ -536,11 +536,14 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 
         registered_messages = record["registered_messages"]
 
-        # MongoDB-ში message_id ხშირად ინახება int, ამიტომ უნდა გადავცეთ ის int-ში
-        message_id_int = int(message_id)
+        # აქ ვცდილობთ, რომ message_id გავხადოთ Long ტიპში (MongoDB-სთან შესატყვისი ფორმატში)
+        try:
+            message_id_long = int(message_id)  # ვცდილობთ სტრინგი int-ად გადაგვექციოს
+        except ValueError:
+            message_id_long = None
 
         # მოძებნოს შეტყობინება მოცემული ID-ით
-        new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_int]
+        new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_long]
 
         if len(new_list) == len(registered_messages):
             await interaction.response.send_message("⚠️ მითითებული ID ვერ მოიძებნა სიაში.", ephemeral=True)
@@ -557,7 +560,6 @@ async def unlist(interaction: discord.Interaction, message_id: str):
     except Exception as e:
         print(f"Error during unlisting: {e}")
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
-
 
 @bot.command(name="invite")
 async def invite_prefix_command(ctx):
