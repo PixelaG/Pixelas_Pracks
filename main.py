@@ -4,7 +4,7 @@ import time
 import discord
 import asyncio
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, Interaction
 from discord.ui import Button, View
 from flask import Flask
 from threading import Thread
@@ -518,18 +518,41 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         await send_embed_notification(interaction, "💥 შეცდომა", f"⚙️ ტექნიკური შეცდომა: `{e}`")
 
 
-@app_commands.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან")
-@app_commands.describe(message_id="შეტყობინების ID, რომლის ამოღებაც გინდა Team List-დან")
-async def unlist(self, interaction: discord.Interaction, message_id: str):
-        await interaction.response.defer(thinking=True)
+@bot.tree.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან")
+@app_commands.checks.has_permissions(administrator=True)
+async def unlist(interaction: Interaction, message_id: str):
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    if not member:
+        return
 
-        # ვცდილობთ ამოვშალოთ ჩანაწერი
-        result = team_list_col.delete_one({"message_id": message_id})
+    try:
+        guild_id = interaction.guild.id
+        record = channel_collection.find_one({"guild_id": guild_id})
 
-        if result.deleted_count == 1:
-            await interaction.followup.send(f"✅ Message ID `{message_id}` წარმატებით ამოიშალა Team List-დან.")
-        else:
-            await interaction.followup.send(f"❌ Message ID `{message_id}` ვერ მოიძებნა Team List-ში.")
+        if not record or "registered_messages" not in record:
+            await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
+            return
+
+        registered_messages = record["registered_messages"]
+
+        # მოძებნოს შეტყობინება მოცემული ID-ით
+        new_list = [msg for msg in registered_messages if msg["message_id"] != message_id]
+
+        if len(new_list) == len(registered_messages):
+            await interaction.response.send_message("⚠️ მითითებული ID ვერ მოიძებნა სიაში.", ephemeral=True)
+            return
+
+        # განახლება MongoDB-ში
+        channel_collection.update_one(
+            {"guild_id": guild_id},
+            {"$set": {"registered_messages": new_list}}
+        )
+
+        await interaction.response.send_message(f"✅ შეტყობინება ID {message_id} წარმატებით ამოღებულია სიიდან!", ephemeral=True)
+
+    except Exception as e:
+        print(f"Error during unlisting: {e}")
+        await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
 @bot.command(name="invite")
