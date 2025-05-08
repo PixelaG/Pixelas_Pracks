@@ -3,6 +3,7 @@ import re
 import time
 import discord
 import asyncio
+from bson import ObjectId
 from discord.ext import commands
 from discord import app_commands
 from flask import Flask
@@ -535,8 +536,11 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 
         registered_messages = record["registered_messages"]
 
+        # MongoDB-ში message_id ხშირად ინახება int, ამიტომ უნდა გადავცეთ ის int-ში
+        message_id_int = int(message_id)
+
         # მოძებნოს შეტყობინება მოცემული ID-ით
-        new_list = [msg for msg in registered_messages if msg["message_id"] != message_id]
+        new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_int]
 
         if len(new_list) == len(registered_messages):
             await interaction.response.send_message("⚠️ მითითებული ID ვერ მოიძებნა სიაში.", ephemeral=True)
@@ -553,10 +557,6 @@ async def unlist(interaction: discord.Interaction, message_id: str):
     except Exception as e:
         print(f"Error during unlisting: {e}")
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
-
-@bot.tree.command(name="test", description="Test command")
-async def test_command(interaction: discord.Interaction):
-    await interaction.response.send_message("Test successful!")
 
 
 @bot.command(name="invite")
