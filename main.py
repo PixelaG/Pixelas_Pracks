@@ -528,7 +528,8 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 
     try:
         guild_id = interaction.guild.id
-        record = channel_collection.find_one({"guild_id": guild_id})
+        # აქ შევცვალეთ collection-ის სახელი (შეამოწმე სწორად ეწოდება კოლექციას)
+        record = db["registered_channels"].find_one({"guild_id": guild_id})
 
         if not record or "registered_messages" not in record:
             await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
@@ -542,6 +543,8 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         except ValueError:
             message_id_long = None
 
+        print(f"Looking for message_id: {message_id_long}")  # Debug: print the message_id we are searching for
+
         # მოძებნოს შეტყობინება მოცემული ID-ით
         new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_long]
 
@@ -550,7 +553,7 @@ async def unlist(interaction: discord.Interaction, message_id: str):
             return
 
         # განახლება MongoDB-ში
-        channel_collection.update_one(
+        db["registered_channels"].update_one(
             {"guild_id": guild_id},
             {"$set": {"registered_messages": new_list}}
         )
