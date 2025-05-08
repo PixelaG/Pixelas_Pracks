@@ -555,6 +555,10 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         print(f"Error during unlisting: {e}")
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
+@bot.tree.command(name="test", description="Test command")
+async def test_command(interaction: discord.Interaction):
+    await interaction.response.send_message("Test successful!")
+
 
 @bot.command(name="invite")
 async def invite_prefix_command(ctx):
