@@ -520,7 +520,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
 
 @app_commands.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან")
 @app_commands.describe(message_id="შეტყობინების ID, რომლის ამოღებაც გინდა Team List-დან")
-    async def unlist(self, interaction: discord.Interaction, message_id: str):
+async def unlist(self, interaction: discord.Interaction, message_id: str):
         await interaction.response.defer(thinking=True)
 
         # ვცდილობთ ამოვშალოთ ჩანაწერი
