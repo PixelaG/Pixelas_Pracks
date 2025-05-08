@@ -554,7 +554,7 @@ async def unlist(interaction: discord.Interaction, message_id: str):
             return
 
         # განახლება MongoDB-ში
-        await db["registered_channels"].update_one(
+        db["registered_channels"].update_one(
             {"guild_id": guild_id},
             {"$set": {"registered_messages": new_list}}
         )
