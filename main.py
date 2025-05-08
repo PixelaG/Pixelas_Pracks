@@ -4,8 +4,7 @@ import time
 import discord
 import asyncio
 from discord.ext import commands
-from discord import app_commands, Interaction
-from discord.ui import Button, View
+from discord import app_commands
 from flask import Flask
 from threading import Thread
 from colorama import init, Fore
@@ -41,7 +40,8 @@ access_entries = db["access_entries"]
 intents = discord.Intents.default()
 intents.members = True  # აუცილებელია წევრების წვდომისთვის
 intents.guilds = True
-intents.message_content = True  # აუცილებელია ტექსტური შეტყობინებების წასაკითხად
+intents.message_content = True # აუცილებელია ტექსტური შეტყობინებების წასაკითხად
+intents.messages = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
@@ -78,7 +78,6 @@ async def on_ready():
         print(f"შეცდომა როლების აღდგენისას: {e}")
     
     try:
-        await tree.sync()
         await bot.tree.sync()
         print(Fore.GREEN + "✅ Slash commands synced successfully.")
     except Exception as e:
