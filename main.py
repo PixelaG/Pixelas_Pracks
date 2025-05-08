@@ -518,6 +518,20 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         await send_embed_notification(interaction, "💥 შეცდომა", f"⚙️ ტექნიკური შეცდომა: `{e}`")
 
 
+@app_commands.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან")
+@app_commands.describe(message_id="შეტყობინების ID, რომლის ამოღებაც გინდა Team List-დან")
+    async def unlist(self, interaction: discord.Interaction, message_id: str):
+        await interaction.response.defer(thinking=True)
+
+        # ვცდილობთ ამოვშალოთ ჩანაწერი
+        result = team_list_col.delete_one({"message_id": message_id})
+
+        if result.deleted_count == 1:
+            await interaction.followup.send(f"✅ Message ID `{message_id}` წარმატებით ამოიშალა Team List-დან.")
+        else:
+            await interaction.followup.send(f"❌ Message ID `{message_id}` ვერ მოიძებნა Team List-ში.")
+
+
 @bot.command(name="invite")
 async def invite_prefix_command(ctx):
     invite_url = "https://discord.com/oauth2/authorize?client_id=1367947407517810719"
