@@ -6,3 +6,4 @@ pymongo
 pytesseract
 Pillow
 aiohttp
+requests
