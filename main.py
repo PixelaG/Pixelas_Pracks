@@ -3,6 +3,10 @@ import re
 import time
 import discord
 import asyncio
+import pytesseract
+import aiohttp
+from io import BytesIO
+from PIL import Image
 from bson import ObjectId
 from discord.ext import commands
 from discord import app_commands
@@ -548,82 +552,88 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
-# ქულების სისტემა
-place_points = {
-    1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2
+PLACE_POINTS = {
+    1: 15,
+    2: 12,
+    3: 10,
+    4: 8,
+    5: 6,
+    6: 4,
+    7: 2
 }
-# 8-12 ადგილი — 1 ქულა, 13-20 — 0 ქულა
 
-
-@bot.command(name="resultpic")
+@bot.command()
 async def resultpic(ctx):
-    await ctx.send("გთხოვთ გამომიგზავნოთ ფოტოები. პასუხად მიაწერეთ ადგილები და ელიმინაციები. მაგ: `1 3kills`")
+    await ctx.send("გთხოვთ გამოაგზავნოთ ფოტოები!")
 
     def check(m):
-        return m.channel == ctx.channel and m.attachments and m.author != bot.user
+        return m.author == ctx.author and m.attachments
 
     try:
-        while True:
-            msg = await bot.wait_for("message", timeout=60.0, check=check)
-            if msg.attachments:
-                image_url = msg.attachments[0].url
-                user_id = str(msg.author.id)
+        msg = await bot.wait_for("message", check=check, timeout=60)
+        for attachment in msg.attachments:
+            if attachment.content_type.startswith("image"):
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(attachment.url) as resp:
+                        image_data = await resp.read()
+                        image = Image.open(BytesIO(image_data))
+                        text = pytesseract.image_to_string(image)
 
-                # ვპოულობთ ადგილს და ელიმინაციებს
-                match = re.search(r"(\d{1,2})\s+(\d+)[ ]?kills?", msg.content.lower())
-                if match:
-                    place = int(match.group(1))
-                    eliminations = int(match.group(2))
-                else:
-                    await ctx.send("ფორმატი არასწორია! გამოიყენეთ `1 3kills`.")
-                    continue
+                        # Get placement
+                        place_match = re.search(r"(\\d+)[a-z]{2}\\s*place", text.lower())
+                        place = int(place_match.group(1)) if place_match else None
 
-                collection.insert_one({
-                    "user_id": user_id,
-                    "image_url": image_url,
-                    "place": place,
-                    "eliminations": eliminations
-                })
-                await ctx.send(f"შენახულია {msg.author.mention}")
-    except Exception:
-        await ctx.send("დრო ამოიწურა ან შეწყდა მიღება.")
+                        # Get eliminations
+                        elim_match = re.search(r"eliminations?[:\\-]?\\s*(\\d+)", text.lower())
+                        elims = int(elim_match.group(1)) if elim_match else 0
 
+                        if not place:
+                            await ctx.send(f"{ctx.author.mention} ვერ მოიძებნა ადგილი ფოტოში.")
+                            continue
 
-@bot.command(name="resultsend")
+                        if place <= 7:
+                            base_points = PLACE_POINTS[place]
+                        elif 8 <= place <= 12:
+                            base_points = 1
+                        else:
+                            base_points = 0
+
+                        total_points = base_points + elims
+
+                        collection.insert_one({
+                            "user": ctx.author.id,
+                            "username": str(ctx.author),
+                            "place": place,
+                            "eliminations": elims,
+                            "points": total_points,
+                            "image_url": attachment.url
+                        })
+                        await ctx.send(f"{ctx.author.mention} შედეგი შენახულია ✅ — ქულები: {total_points}")
+
+    except TimeoutError:
+        await ctx.send("⌛ დრო ამოიწურა! გთხოვთ სცადეთ თავიდან.")
+
+@bot.command()
 async def resultsend(ctx):
-    results = collection.find()
-    user_scores = {}
-
-    for result in results:
-        uid = result["user_id"]
-        place = result["place"]
-        elims = result["eliminations"]
-
-        points = place_points.get(place, 1 if 8 <= place <= 12 else 0)
-        total = points + elims
-
-        if uid not in user_scores:
-            user_scores[uid] = 0
-        user_scores[uid] += total
-
-    if not user_scores:
+    results = list(collection.find())
+    if not results:
         await ctx.send("შედეგები არ მოიძებნა.")
         return
 
-    sorted_scores = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
-    message = "**შედეგები:**\n"
-    for i, (uid, score) in enumerate(sorted_scores, 1):
-        user = await bot.fetch_user(int(uid))
-        message += f"**{i}. {user.name}** — {score} ქულა\n"
+    user_scores = {}
+    for entry in results:
+        user_scores.setdefault(entry["username"], 0)
+        user_scores[entry["username"]] += entry["points"]
 
-    await ctx.send(message)
+    sorted_results = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
+    leaderboard = "\n".join([f"{i+1}. {user} — {points} ქულა" for i, (user, points) in enumerate(sorted_results)])
 
+    await ctx.send(f"**შედეგები:**\n{leaderboard}")
 
-@bot.command(name="resultclear")
+@bot.command()
 async def resultclear(ctx):
     collection.delete_many({})
-    await ctx.send("ბაზა გასუფთავდა.")
-
+    await ctx.send("შედეგები გაწმენდილია 🧹")
 
 
 
