@@ -38,6 +38,8 @@ keep_alive()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 mongo_uri = os.getenv("MONGO_URI")
+OCR_API_KEY = os.getenv("OCR_API_KEY")
+
 
 
 client = MongoClient(mongo_uri)
