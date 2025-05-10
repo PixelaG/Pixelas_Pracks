@@ -5,6 +5,8 @@ import discord
 import asyncio
 import pytesseract
 import aiohttp
+import requests
+from dotenv import load_dotenv
 from io import BytesIO
 from PIL import Image
 from bson import ObjectId
@@ -15,6 +17,8 @@ from threading import Thread
 from colorama import init, Fore
 from datetime import datetime, timedelta
 from pymongo import MongoClient 
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -40,6 +44,7 @@ client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
+collection = db["results"]
 
 
 intents = discord.Intents.default()
@@ -552,88 +557,86 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
-PLACE_POINTS = {
-    1: 15,
-    2: 12,
-    3: 10,
-    4: 8,
-    5: 6,
-    6: 4,
-    7: 2
+place_points = {
+    1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2
 }
+# 8–12 = 1 point, 13–20 = 0
+
+def extract_points(text):
+    place = None
+    kills = 0
+
+    for line in text.splitlines():
+        line = line.lower()
+        # Detect placement
+        for p in range(1, 21):
+            if f"{p} place" in line or f"{p}th" in line or f"{p}st" in line:
+                place = p
+                break
+        # Detect eliminations
+        if "elimination" in line:
+            for part in line.split():
+                if part.isdigit():
+                    kills = int(part)
+                    break
+
+    place_score = (
+        place_points.get(place, 1 if place and 8 <= place <= 12 else 0)
+        if place else 0
+    )
+    return place or "?", kills, place_score + kills
+
+def ocr_space_image_url(image_url):
+    payload = {
+        'url': image_url,
+        'apikey': OCR_API_KEY,
+        'language': 'eng',
+    }
+    r = requests.post('https://api.ocr.space/parse/image', data=payload)
+    result = r.json()
+    return result['ParsedResults'][0]['ParsedText']
 
 @bot.command()
 async def resultpic(ctx):
-    await ctx.send("გთხოვთ გამოაგზავნოთ ფოტოები!")
+    await ctx.send("📸 გამოაგზავნეთ ფოტო (image attachment) რომ დავამუშაო")
 
-    def check(m):
-        return m.author == ctx.author and m.attachments
+    def check(msg):
+        return msg.author == ctx.author and msg.attachments
 
     try:
-        msg = await bot.wait_for("message", check=check, timeout=60)
+        msg = await bot.wait_for('message', check=check, timeout=60.0)
         for attachment in msg.attachments:
-            if attachment.content_type.startswith("image"):
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(attachment.url) as resp:
-                        image_data = await resp.read()
-                        image = Image.open(BytesIO(image_data))
-                        text = pytesseract.image_to_string(image)
+            image_url = attachment.url
+            text = ocr_space_image_url(image_url)
+            place, kills, total_points = extract_points(text)
+            collection.insert_one({
+                "user": ctx.author.name,
+                "image": image_url,
+                "place": place,
+                "kills": kills,
+                "points": total_points
+            })
+            await ctx.send(f"✅ შედეგი შენახულია: {place} ადგილი, {kills} მკვლელობა – {total_points} ქულა")
 
-                        # Get placement
-                        place_match = re.search(r"(\\d+)[a-z]{2}\\s*place", text.lower())
-                        place = int(place_match.group(1)) if place_match else None
-
-                        # Get eliminations
-                        elim_match = re.search(r"eliminations?[:\\-]?\\s*(\\d+)", text.lower())
-                        elims = int(elim_match.group(1)) if elim_match else 0
-
-                        if not place:
-                            await ctx.send(f"{ctx.author.mention} ვერ მოიძებნა ადგილი ფოტოში.")
-                            continue
-
-                        if place <= 7:
-                            base_points = PLACE_POINTS[place]
-                        elif 8 <= place <= 12:
-                            base_points = 1
-                        else:
-                            base_points = 0
-
-                        total_points = base_points + elims
-
-                        collection.insert_one({
-                            "user": ctx.author.id,
-                            "username": str(ctx.author),
-                            "place": place,
-                            "eliminations": elims,
-                            "points": total_points,
-                            "image_url": attachment.url
-                        })
-                        await ctx.send(f"{ctx.author.mention} შედეგი შენახულია ✅ — ქულები: {total_points}")
-
-    except TimeoutError:
-        await ctx.send("⌛ დრო ამოიწურა! გთხოვთ სცადეთ თავიდან.")
+    except Exception as e:
+        await ctx.send(f"❌ შეცდომა: {e}")
 
 @bot.command()
 async def resultsend(ctx):
     results = list(collection.find())
     if not results:
-        await ctx.send("შედეგები არ მოიძებნა.")
-        return
+        await ctx.send("📭 შედეგები არ არის.")
 
-    user_scores = {}
-    for entry in results:
-        user_scores.setdefault(entry["username"], 0)
-        user_scores[entry["username"]] += entry["points"]
+    msg = "**📊 შედეგების სია:**\n"
+    for r in results:
+        msg += f"- {r['user']}: {r['place']} ადგილი, {r['kills']} მკვლელობა – {r['points']} ქულა\n"
 
-    sorted_results = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
-    leaderboard = "\n".join([f"{i+1}. {user} — {points} ქულა" for i, (user, points) in enumerate(sorted_results)])
-
-    await ctx.send(f"**შედეგები:**\n{leaderboard}")
+    await ctx.send(msg)
 
 @bot.command()
 async def resultclear(ctx):
     collection.delete_many({})
-    await ctx.send("შედეგები გაწმენდილია 🧹")
+    await ctx.send("🗑️ ყველა შედეგი წაიშალა.")
 
 
 
