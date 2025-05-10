@@ -3,3 +3,6 @@ colorama
 flask
 motor
 pymongo
+pytesseract
+Pillow
+aiohttp
