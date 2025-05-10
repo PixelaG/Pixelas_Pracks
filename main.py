@@ -547,6 +547,86 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         print(f"Error during unlisting: {e}")
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
+
+# ქულების სისტემა
+place_points = {
+    1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2
+}
+# 8-12 ადგილი — 1 ქულა, 13-20 — 0 ქულა
+
+
+@bot.command(name="resultpic")
+async def resultpic(ctx):
+    await ctx.send("გთხოვთ გამომიგზავნოთ ფოტოები. პასუხად მიაწერეთ ადგილები და ელიმინაციები. მაგ: `1 3kills`")
+
+    def check(m):
+        return m.channel == ctx.channel and m.attachments and m.author != bot.user
+
+    try:
+        while True:
+            msg = await bot.wait_for("message", timeout=60.0, check=check)
+            if msg.attachments:
+                image_url = msg.attachments[0].url
+                user_id = str(msg.author.id)
+
+                # ვპოულობთ ადგილს და ელიმინაციებს
+                match = re.search(r"(\d{1,2})\s+(\d+)[ ]?kills?", msg.content.lower())
+                if match:
+                    place = int(match.group(1))
+                    eliminations = int(match.group(2))
+                else:
+                    await ctx.send("ფორმატი არასწორია! გამოიყენეთ `1 3kills`.")
+                    continue
+
+                collection.insert_one({
+                    "user_id": user_id,
+                    "image_url": image_url,
+                    "place": place,
+                    "eliminations": eliminations
+                })
+                await ctx.send(f"შენახულია {msg.author.mention}")
+    except Exception:
+        await ctx.send("დრო ამოიწურა ან შეწყდა მიღება.")
+
+
+@bot.command(name="resultsend")
+async def resultsend(ctx):
+    results = collection.find()
+    user_scores = {}
+
+    for result in results:
+        uid = result["user_id"]
+        place = result["place"]
+        elims = result["eliminations"]
+
+        points = place_points.get(place, 1 if 8 <= place <= 12 else 0)
+        total = points + elims
+
+        if uid not in user_scores:
+            user_scores[uid] = 0
+        user_scores[uid] += total
+
+    if not user_scores:
+        await ctx.send("შედეგები არ მოიძებნა.")
+        return
+
+    sorted_scores = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
+    message = "**შედეგები:**\n"
+    for i, (uid, score) in enumerate(sorted_scores, 1):
+        user = await bot.fetch_user(int(uid))
+        message += f"**{i}. {user.name}** — {score} ქულა\n"
+
+    await ctx.send(message)
+
+
+@bot.command(name="resultclear")
+async def resultclear(ctx):
+    collection.delete_many({})
+    await ctx.send("ბაზა გასუფთავდა.")
+
+
+
+
 @bot.command(name="invite")
 async def invite_prefix_command(ctx):
     invite_url = "https://discord.com/oauth2/authorize?client_id=1367947407517810719"
