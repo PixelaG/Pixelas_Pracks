@@ -568,25 +568,21 @@ def extract_points(text):
     place = None
     kills = 0
 
+    # თითოეული გუნდის ჩანაწერისთვის
     for line in text.splitlines():
-        line = line.lower()
+        line = line.lower()  # თარგმნა პატარა ასოებად
 
-        # დეტექტირება ადგილის
-        for p in range(1, 21):
-            if f"{p} place" in line or f"{p}th" in line or f"{p}st" in line:
-                place = p
-                break
-        
-        # დეტექტირება მკვლელობების
-        if "elimination" in line or "kills" in line:
-            for part in line.split():
-                if part.isdigit():
-                    kills = int(part)
-                    break
+        # აღიარე გუნდის ნომერი (1, 2, 3 და ა.შ.)
+        match = re.search(r'გუნდი (\d+)/(\d+)kills', line)  # regex გამოსავლება
+        if match:
+            place = int(match.group(1))  # გუნდის ადგილი
+            kills = int(match.group(2))  # მკვლელობების რაოდენობა
+            break  # მხოლოდ პირველი გუნდი უნდა მიიღოს
 
-    # რომელი ქულები უნდა დაუმატოს
-    place_score = place_points.get(place, 0) if place else 0
-    return place or "?", kills, place_score + kills
+    # ქულების გამოთვლა
+    place_score = place_points.get(place, 1 if 8 <= place <= 12 else 0) if place else 0
+    total_points = place_score + kills  # საბოლოო ქულები
+    return place, kills, total_points
 
 def ocr_space_image_url(image_url):
     payload = {
@@ -605,7 +601,7 @@ def ocr_space_image_url(image_url):
 
 @bot.command()
 async def resultpic(ctx):
-    await ctx.send("📸 გამოაგზავნეთ ფოტო (image attachment) რომ დავამუშაო")
+    await ctx.send("📸 გამოაგზავნეთ ფოტო (image attachment), რომ დავამუშაო")
 
     def check(msg):
         return msg.author == ctx.author and msg.attachments
@@ -614,8 +610,9 @@ async def resultpic(ctx):
         msg = await bot.wait_for('message', check=check, timeout=60.0)
         for attachment in msg.attachments:
             image_url = attachment.url
-            text = ocr_space_image_url(image_url)
-            place, kills, total_points = extract_points(text)
+            text = ocr_space_image_url(image_url)  # OCR პროცესირება
+            print(text)  # გამოიტანეთ OCR ტექსტი (დაეხმარება დებაგინგში)
+            place, kills, total_points = extract_points(text)  # მონაცემების გადამუშავება
             collection.insert_one({
                 "user": ctx.author.name,
                 "image": image_url,
