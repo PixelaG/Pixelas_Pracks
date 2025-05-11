@@ -374,8 +374,7 @@ async def createteamlist(interaction: discord.Interaction):
             "> \n"
             ">                  __**TEAM LIST**__\n"
             ">                        **22:00**\n"
-            + "\n".join(lines) +
-            "\n>\n> || @everyone  ||"
+            + "\n".join(lines)
         )
 
         await team_channel.send(message)
