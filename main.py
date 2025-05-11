@@ -246,13 +246,12 @@ async def check_user_permissions(interaction, required_role_id: int, guild_id: i
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
 @app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
 @app_commands.checks.has_permissions(administrator=True)
-async def regchannel_22_00(
-    interaction: discord.Interaction,
-    channel: discord.TextChannel,
-    role_22_00: discord.Role,
-    banned_role: discord.Role,
-    teamlist_channel: discord.TextChannel
-):
+async def regchannel_22_00(interaction: discord.Interaction, channel: discord.TextChannel, role_22_00: discord.Role, banned_role: discord.Role, teamlist_channel: discord.TextChannel):
+
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    if not member:
+       return
+    
     guild_id = interaction.guild.id
 
     channel_collection.update_one(
@@ -574,6 +573,11 @@ def calculate_points(place, eliminations):
 # !createresult - რამდენიმე გუნდის მონაცემების შესატანად
 @bot.command()
 async def createresult(ctx, *args):
+    
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    if not member:
+       return
+        
     try:
         if len(args) % 3 != 0:
             await ctx.send("❌ გთხოვთ, მიუთითოთ თითოეული გუნდის მონაცემები (TeamName, Place, Kills).")
@@ -605,6 +609,11 @@ async def createresult(ctx, *args):
 # !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
 async def getresult(ctx):
+    
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    if not member:
+       return
+    
     results = list(collection.find())
     if not results:
         await ctx.send("📭 შედეგები არ არის.")
@@ -618,6 +627,11 @@ async def getresult(ctx):
 # !resultclear - მონაცემების წაშლა
 @bot.command()
 async def resultclear(ctx):
+
+    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    if not member:
+       return
+        
     collection.delete_many({})
     await ctx.send("🗑️ ყველა შედეგი წაიშალა.")
 
