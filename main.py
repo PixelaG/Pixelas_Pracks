@@ -596,7 +596,12 @@ def ocr_space_image_url(image_url):
     }
     r = requests.post('https://api.ocr.space/parse/image', data=payload)
     result = r.json()
-    return result['ParsedResults'][0]['ParsedText']
+    
+    # Check if 'ParsedResults' exists and is a list
+    if 'ParsedResults' in result and isinstance(result['ParsedResults'], list) and len(result['ParsedResults']) > 0:
+        return result['ParsedResults'][0]['ParsedText']
+    else:
+        return "❌ OCR ვერ მოახერხა ტექსტის ამოღება"
 
 @bot.command()
 async def resultpic(ctx):
