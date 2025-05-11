@@ -571,30 +571,30 @@ def extract_all_results(text):
 
     while i < len(lines):
         line = lines[i].strip()
-        if line.isdigit():
+        # დამთხვევა მხოლოდ იმ შემთხვევაში, თუ მხოლოდ ერთი რიცხვია ხაზზე (1, 2, 3, ...)
+        if re.fullmatch(r'[1-9]|1[0-9]|20', line):
             place = int(line)
-            if 1 <= place <= 20:
-                kills = 0
+            kills = 0
+            i += 1
+            # ვაგროვებთ მკვლელობებს მანამ სანამ შემდეგი ადგილი არ მოვა (ან ტექსტი დასრულდება)
+            while i < len(lines):
+                next_line = lines[i].strip()
+                if re.fullmatch(r'[1-9]|1[0-9]|20', next_line):
+                    break
+                elim_match = re.findall(r'eliminations[:\s]*([0-9]+)', next_line)
+                for match in elim_match:
+                    kills += int(match)
                 i += 1
-                while i < len(lines):
-                    next_line = lines[i].strip()
-                    if next_line.isdigit():  # შემდეგი გუნდი იწყება
-                        break
-                    if 'eliminations' in next_line:
-                        match = re.search(r'eliminations[:\s]+(\d+)', next_line)
-                        if match:
-                            kills += int(match.group(1))
-                    i += 1
 
-                place_score = place_points.get(place, 1 if 8 <= place <= 12 else 0)
-                total_points = place_score + kills
-                results.append({
-                    'place': place,
-                    'kills': kills,
-                    'points': total_points
-                })
-                continue
-        i += 1
+            place_score = place_points.get(place, 1 if 8 <= place <= 12 else 0)
+            total_points = place_score + kills
+            results.append({
+                'place': place,
+                'kills': kills,
+                'points': total_points
+            })
+        else:
+            i += 1
 
     return results
 
