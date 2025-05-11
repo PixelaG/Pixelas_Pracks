@@ -611,8 +611,9 @@ async def resultpic(ctx):
         for attachment in msg.attachments:
             image_url = attachment.url
             text = ocr_space_image_url(image_url)  # OCR პროცესირება
-            print(text)  # გამოიტანეთ OCR ტექსტი (დაეხმარება დებაგინგში)
+            print(f"OCR შედეგი: {text}")  # OCR ტექსტი კონსოლში
             place, kills, total_points = extract_points(text)  # მონაცემების გადამუშავება
+            print(f"მონაცემები: ადგილი {place}, მკვლელობები {kills}, ქულები {total_points}")  # გადამუშავებული მონაცემები
             collection.insert_one({
                 "user": ctx.author.name,
                 "image": image_url,
