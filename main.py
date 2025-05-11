@@ -565,24 +565,34 @@ def calculate_points(place, eliminations):
     place_score = place_points.get(place, 1 if place >= 8 else 0)
     return place_score + eliminations
 
-# !createresult - გუნდის მონაცემების შესატანად
+# !createresult - რამდენიმე გუნდის მონაცემების შესატანად
 @bot.command()
-async def createresult(ctx, team_name: str, place: int, eliminations: int):
+async def createresult(ctx, *args):
     try:
-        # ქულების გამოთვლა
-        points = calculate_points(place, eliminations)
-        
-        # MongoDB-ში მონაცემების შენახვა
-        collection.insert_one({
-            "user": ctx.author.name,
-            "team_name": team_name,
-            "place": place,
-            "eliminations": eliminations,
-            "points": points
-        })
-        
-        await ctx.send(f"✅ შედეგი შენახულია: {team_name} – {place} ადგილი, {eliminations} მკვლელობა – {points} ქულა")
-    
+        if len(args) % 3 != 0:
+            await ctx.send("❌ გთხოვთ, მიუთითოთ თითოეული გუნდის მონაცემები (TeamName, Place, Kills).")
+            return
+
+        # თითოეული გუნდის მონაცემების დამატება
+        for i in range(0, len(args), 3):
+            team_name = args[i]
+            place = int(args[i+1])
+            eliminations = int(args[i+2])
+
+            # ქულების გამოთვლა
+            points = calculate_points(place, eliminations)
+            
+            # MongoDB-ში მონაცემების შენახვა
+            collection.insert_one({
+                "user": ctx.author.name,
+                "team_name": team_name,
+                "place": place,
+                "eliminations": eliminations,
+                "points": points
+            })
+            
+            await ctx.send(f"✅ შედეგი შენახულია: {team_name} – {place} ადგილი, {eliminations} მკვლელობა – {points} ქულა")
+
     except Exception as e:
         await ctx.send(f"❌ შეცდომა: {e}")
 
@@ -595,7 +605,7 @@ async def getresult(ctx):
 
     msg = "**📊 შედეგების სია:**\n"
     for r in results:
-        msg += f"- {r['team_name']} (მოთამაშე: {r['user']}) : {r['place']} ადგილი, {r['eliminations']} მკვლელობა – {r['points']} ქულა\n"
+        msg += f"- {r['team_name']} : {r['place']} ადგილი, {r['eliminations']} მკვლელობა – {r['points']} ქულა\n"
 
     await ctx.send(msg)
 
