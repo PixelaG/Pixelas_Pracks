@@ -559,10 +559,15 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
-# ქულების გამოთვლა
+# ქულების გამოთვლა (13-20 ადგილებისთვის არ არის ქულა)
 def calculate_points(place, eliminations):
     place_points = {1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2}
-    place_score = place_points.get(place, 1 if place >= 8 else 0)
+
+    # თუ ადგილი არის 13 ან მეტი, ქულები არ მიენიჭოს
+    if place >= 13:
+        return 0
+    
+    place_score = place_points.get(place, 0)
     return place_score + eliminations
 
 # !createresult - რამდენიმე გუნდის მონაცემების შესატანად
