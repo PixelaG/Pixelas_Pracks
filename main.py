@@ -646,14 +646,12 @@ async def getresult(ctx):
     if not member:
         return
 
-    # გუნდების დაჯგუფება და ქულების ჯამის დათვლა
     pipeline = [
         {
             "$group": {
                 "_id": "$team_name",
                 "total_points": {"$sum": "$points"},
-                "total_eliminations": {"$sum": "$eliminations"},
-                "latest_place": {"$last": "$place"}  # ბოლო შედეგი, მხოლოდ ინფოსთვის
+                "total_eliminations": {"$sum": "$eliminations"}
             }
         },
         {
@@ -667,13 +665,13 @@ async def getresult(ctx):
         await ctx.send("📭 შედეგები არ არის.")
         return
 
-    msg = "**📊 საბოლოო შედეგები (დალაგებულია ქულების მიხედვით):**\n"
-    for r in grouped_results:
+    msg = "**📊 საბოლოო შედეგები (ქულების მიხედვით დალაგებული):**\n"
+
+    for idx, r in enumerate(grouped_results, start=1):
         team = r['_id']
-        place = r['latest_place']
-        kills = r['total_eliminations']
         total_points = r['total_points']
-        msg += f"- {team} : {place} ადგილი, {kills} მკვლელობა – {total_points} ქულა\n"
+        kills = r['total_eliminations']
+        msg += f"**{idx} ადგილი** – {team}: {kills} მკვლელობა, {total_points} ქულა\n"
 
     await ctx.send(msg)
 
