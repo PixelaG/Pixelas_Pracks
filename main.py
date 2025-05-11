@@ -614,7 +614,11 @@ def ocr_space_image_url(image_url):
     }
     r = requests.post('https://api.ocr.space/parse/image', data=payload)
     result = r.json()
-    return result['ParsedResults'][0]['ParsedText']
+    text = result['ParsedResults'][0]['ParsedText']
+    
+    print("OCR Result:", text)  # Add this line to print OCR results for debugging
+    
+    return text
 
 @bot.command()
 async def resultpic(ctx):
