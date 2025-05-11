@@ -571,21 +571,18 @@ def extract_points(text):
     for line in text.splitlines():
         line = line.lower()
         # Detect placement
-        for p in range(1, 21):
+        for p in range(1, 6):  # From 1st to 5th place
             if f"{p} place" in line or f"{p}th" in line or f"{p}st" in line:
                 place = p
                 break
         # Detect eliminations
-        if "elimination" in line:
+        if "eliminations" in line or "kills" in line:
             for part in line.split():
                 if part.isdigit():
                     kills = int(part)
                     break
 
-    place_score = (
-        place_points.get(place, 1 if place and 8 <= place <= 12 else 0)
-        if place else 0
-    )
+    place_score = place_points.get(place, 0) if place else 0
     return place or "?", kills, place_score + kills
 
 def ocr_space_image_url(image_url):
