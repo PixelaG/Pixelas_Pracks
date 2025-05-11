@@ -559,51 +559,36 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
-place_points = {
-    1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2
-}
-# 8–12 = 1 point, 13–20 = 0
-
-def extract_teams(text):
-    lines = text.lower().splitlines()
-    teams = []
-    current_team = None
-    eliminations = []
-
-    for line in lines:
-        # Search for team number (e.g., "1", "2", ... "5")
-        match = re.match(r'^(\d+)\s', line)
-        if match:
-            if current_team is not None:
-                total_kills = sum(eliminations)
-                place = current_team
-                base_points = place_points.get(place, 1 if 8 <= place <= 12 else 0)
-                total_points = base_points + total_kills
-                teams.append({
-                    "place": place,
-                    "kills": total_kills,
-                    "points": total_points
-                })
-            current_team = int(match.group(1))
-            eliminations = []
-        elif "elimination" in line:
-            found = re.findall(r'(\d+)\s*elimination', line)
-            if found:
-                for kill in found:
-                    eliminations.append(int(kill))
-
-    # Processing last team
-    if current_team is not None:
-        total_kills = sum(eliminations)
-        place = current_team
-        base_points = place_points.get(place, 1 if 8 <= place <= 12 else 0)
-        total_points = base_points + total_kills
-        teams.append({
+def extract_points(teams):
+    results = []
+    place_points = {1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2}
+    for index, (team_name, eliminations) in enumerate(teams):
+        place = index + 1  # Team places start from 1, 2, 3...
+        place_score = place_points.get(place, 1 if place >= 8 and place <= 12 else 0)
+        total_points = place_score + eliminations
+        results.append({
+            "team_name": team_name,
             "place": place,
-            "kills": total_kills,
+            "eliminations": eliminations,
             "points": total_points
         })
+    return results
 
+def extract_teams(text):
+    teams = []
+    lines = text.splitlines()
+    print("OCR Output Lines:", lines)  # Log OCR lines
+    
+    for line in lines:
+        line = line.lower()
+        # Extract team number and eliminations
+        if "team" in line and "eliminations" in line:
+            parts = line.split("|")
+            team_name = parts[0].strip()
+            eliminations = int(parts[1].split()[0].strip())  # Get first number for eliminations
+            teams.append((team_name, eliminations))
+    
+    print(f"Extracted teams and eliminations: {teams}")
     return teams
 
 def ocr_space_image_url(image_url):
@@ -638,15 +623,17 @@ async def resultpic(ctx):
                 await ctx.send("❌ ვერ ვიპოვე შედეგები ფოტოზე.")
                 return
 
-            for team in teams:
+            results = extract_points(teams)
+
+            for result in results:
                 collection.insert_one({
                     "user": ctx.author.name,
                     "image": image_url,
-                    "place": team["place"],
-                    "kills": team["kills"],
-                    "points": team["points"]
+                    "place": result["place"],
+                    "kills": result["eliminations"],
+                    "points": result["points"]
                 })
-                await ctx.send(f"✅ შედეგი შენახულია: {team['place']} ადგილი, {team['kills']} მკვლელობა – {team['points']} ქულა")
+                await ctx.send(f"✅ შედეგი შენახულია: {result['place']} ადგილი, {result['eliminations']} მკვლელობა – {result['points']} ქულა")
 
     except Exception as e:
         await ctx.send(f"❌ შეცდომა: {e}")
