@@ -641,19 +641,39 @@ async def createresult(ctx, *args):
 
 # !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
-async def getresult(ctx): 
+async def getresult(ctx):
     member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
     if not member:
         return
 
-    results = list(collection.find())
-    if not results:
+    # გუნდების დაჯგუფება და ქულების ჯამის დათვლა
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$team_name",
+                "total_points": {"$sum": "$points"},
+                "total_eliminations": {"$sum": "$eliminations"},
+                "latest_place": {"$last": "$place"}  # ბოლო შედეგი, მხოლოდ ინფოსთვის
+            }
+        },
+        {
+            "$sort": {"total_points": -1}
+        }
+    ]
+
+    grouped_results = list(collection.aggregate(pipeline))
+
+    if not grouped_results:
         await ctx.send("📭 შედეგები არ არის.")
         return
 
-    msg = "**📊 შედეგების სია:**\n"
-    for r in results:
-        msg += f"- {r['team_name']} : {r['place']} ადგილი, {r['eliminations']} მკვლელობა – {r['points']} ქულა\n"
+    msg = "**📊 საბოლოო შედეგები (დალაგებულია ქულების მიხედვით):**\n"
+    for r in grouped_results:
+        team = r['_id']
+        place = r['latest_place']
+        kills = r['total_eliminations']
+        total_points = r['total_points']
+        msg += f"- {team} : {place} ადგილი, {kills} მკვლელობა – {total_points} ქულა\n"
 
     await ctx.send(msg)
 
