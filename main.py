@@ -604,20 +604,37 @@ async def createresult(ctx, *args):
 
         for i in range(0, len(args), 3):
             team_name = args[i]
-            place = int(args[i+1])
-            eliminations = int(args[i+2])
-
+            place = int(args[i + 1])
+            eliminations = int(args[i + 2])
             points = calculate_points(place, eliminations)
 
-            collection.insert_one({
-                "user": ctx.author.name,
-                "team_name": team_name,
-                "place": place,
-                "eliminations": eliminations,
-                "points": points
-            })
+            existing = collection.find_one({"team_name": team_name})
 
-            await ctx.send(f"✅ შედეგი შენახულია: {team_name} – {place} ადგილი, {eliminations} მკვლელობა – {points} ქულა")
+            if existing:
+                # უკვე არსებობს — ვაკეთებთ განახლებას
+                new_place = existing['place'] + place
+                new_eliminations = existing['eliminations'] + eliminations
+                new_points = existing['points'] + points
+
+                collection.update_one(
+                    {"team_name": team_name},
+                    {"$set": {
+                        "place": new_place,
+                        "eliminations": new_eliminations,
+                        "points": new_points
+                    }}
+                )
+                await ctx.send(f"🔁 განახლებულია: {team_name} – {new_place} ადგილი, {new_eliminations} მკვლელობა – {new_points} ქულა")
+            else:
+                # ახალი გუნდი — ვამატებთ
+                collection.insert_one({
+                    "user": ctx.author.name,
+                    "team_name": team_name,
+                    "place": place,
+                    "eliminations": eliminations,
+                    "points": points
+                })
+                await ctx.send(f"✅ შედეგი შენახულია: {team_name} – {place} ადგილი, {eliminations} მკვლელობა – {points} ქულა")
 
     except Exception as e:
         await ctx.send(f"❌ შეცდომა: {e}")
