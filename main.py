@@ -567,22 +567,28 @@ place_points = {
 def extract_points(text):
     place = None
     kills = 0
+    lines = text.lower().splitlines()
 
-    # თითოეული გუნდის ჩანაწერისთვის
-    for line in text.splitlines():
-        line = line.lower()  # თარგმნა პატარა ასოებად
+    for i, line in enumerate(lines):
+        # ვამოწმებთ თუ ხაზი შეიცავს მხოლოდ რიცხვს (1-დან 20-მდე), რაც ნიშნავს ადგილს
+        if line.strip().isdigit():
+            possible_place = int(line.strip())
+            if 1 <= possible_place <= 20:
+                place = possible_place
+                # შემდეგ ვეძებთ eliminations-ებს ამ გუნდის ფარგლებში
+                j = i + 1
+                while j < len(lines):
+                    if lines[j].strip().isdigit():
+                        break  # შემდეგი გუნდი იწყება
+                    if 'eliminations' in lines[j]:
+                        match = re.search(r'eliminations[:\s]+(\d+)', lines[j])
+                        if match:
+                            kills += int(match.group(1))
+                    j += 1
+                break  # მხოლოდ ერთი გუნდი გვაინტერესებს
 
-        # აღიარე გუნდის ნომერი (1, 2, 3 და ა.შ.)
-        match = re.search(r'გუნდი (\d+)/(\d+)kills', line)  # regex გამოსავლება
-        if match:
-            place = int(match.group(1))  # გუნდის ადგილი
-            kills = int(match.group(2))  # მკვლელობების რაოდენობა
-            break  # მხოლოდ პირველი გუნდი უნდა მიიღოს
-
-    # ქულების გამოთვლა
-    place_score = place_points.get(place, 1 if 8 <= place <= 12 else 0) if place else 0
-    total_points = place_score + kills  # საბოლოო ქულები
-    return place, kills, total_points
+    place_score = place_points.get(place, 1 if place and 8 <= place <= 12 else 0) if place else 0
+    return place, kills, place_score + kills
 
 def ocr_space_image_url(image_url):
     payload = {
