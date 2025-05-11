@@ -561,8 +561,13 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 
 place_points = {
     1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2
+    # 8–12: 1 point, 13–20: 0
 }
-# 8–12 = 1 point, 13–20 = 0
+
+word_to_place = {
+    'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5,
+    'sixth': 6, 'seventh': 7, 'eighth': 8, 'ninth': 9, 'tenth': 10
+}
 
 def extract_all_results(text):
     lines = text.lower().splitlines()
@@ -571,15 +576,20 @@ def extract_all_results(text):
 
     while i < len(lines):
         line = lines[i].strip()
-        # დამთხვევა მხოლოდ იმ შემთხვევაში, თუ მხოლოდ ერთი რიცხვია ხაზზე (1, 2, 3, ...)
+
+        # ამოიცნოს ადგილი როგორც რიცხვი ან სიტყვა
+        place = None
         if re.fullmatch(r'[1-9]|1[0-9]|20', line):
             place = int(line)
+        elif line in word_to_place:
+            place = word_to_place[line]
+
+        if place:
             kills = 0
             i += 1
-            # ვაგროვებთ მკვლელობებს მანამ სანამ შემდეგი ადგილი არ მოვა (ან ტექსტი დასრულდება)
             while i < len(lines):
                 next_line = lines[i].strip()
-                if re.fullmatch(r'[1-9]|1[0-9]|20', next_line):
+                if re.fullmatch(r'[1-9]|1[0-9]|20', next_line) or next_line in word_to_place:
                     break
                 elim_match = re.findall(r'eliminations[:\s]*([0-9]+)', next_line)
                 for match in elim_match:
@@ -625,24 +635,26 @@ async def resultpic(ctx):
         for attachment in msg.attachments:
             image_url = attachment.url
             text = ocr_space_image_url(image_url)
+
             results = extract_all_results(text)
 
             if not results:
-                await ctx.send("❌ ვერ მოიძებნა შედეგები ფოტოში.")
+                await ctx.send("❌ შედეგები ვერ მოიძებნა ფოტოში.")
                 return
 
-            response = "✅ შედეგები:\n"
-            for res in results:
+            for r in results:
                 collection.insert_one({
                     "user": ctx.author.name,
                     "image": image_url,
-                    "place": res["place"],
-                    "kills": res["kills"],
-                    "points": res["points"]
+                    "place": r['place'],
+                    "kills": r['kills'],
+                    "points": r['points']
                 })
-                response += f"- {res['place']} ადგილი – {res['kills']} მკვლელობა – {res['points']} ქულა\n"
 
-            await ctx.send(response)
+            msg_text = "\n".join(
+                [f"✅ შედეგი შენახულია: {r['place']} ადგილი, {r['kills']} მკვლელობა – {r['points']} ქულა" for r in results]
+            )
+            await ctx.send(msg_text)
 
     except Exception as e:
         await ctx.send(f"❌ შეცდომა: {e}")
