@@ -581,10 +581,6 @@ async def unlist(interaction: discord.Interaction, message_id: str):
 def calculate_points(place, eliminations):
     # განახლებული ქულების განაწილება
     place_points = {1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1}
-
-    # თუ ადგილი არის 13 ან მეტი, ქულები არ მიენიჭოს
-    if place >= 13:
-        return 0
     
     place_score = place_points.get(place, 0)  # მიიღე ადგილს შესაბამისი ქულები
     return place_score + eliminations  # გამოითხოვოს ჯამი
