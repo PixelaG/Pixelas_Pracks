@@ -243,6 +243,26 @@ async def check_user_permissions(interaction, required_role_id: int, guild_id: i
 
     return member
 
+
+
+async def check_user_permissions_for_ctx(ctx, required_role_id: int, guild_id: int):
+    home_guild = discord.utils.get(bot.guilds, id=guild_id)
+    if not home_guild:
+        await ctx.send("⚠️ მთავარი სერვერი არ არის ნაპოვნი. სცადეთ მოგვიანებით.")
+        return None
+
+    try:
+        member = await home_guild.fetch_member(ctx.author.id)
+    except discord.NotFound:
+        await ctx.send("⛔️ თქვენ არ ხართ მთავარ სერვერზე. შემოგვიერთდით: https://discord.gg/byScSM6T9Q")
+        return None
+
+    if not any(role.id == required_role_id for role in member.roles):
+        await ctx.send("🚫 თქვენ არ გაქვთ ამ ქომანდის გამოყენების უფლება. შესაძენად ეწვიეთ სერვერს: https://discord.gg/byScSM6T9Q")
+        return None
+
+    return member
+
 @bot.tree.command(name="regchannel_22_00", description="დაარეგისტრირე არხი 22:00 როლით")
 @app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
 @app_commands.checks.has_permissions(administrator=True)
@@ -573,26 +593,22 @@ def calculate_points(place, eliminations):
 # !createresult - რამდენიმე გუნდის მონაცემების შესატანად
 @bot.command()
 async def createresult(ctx, *args):
-    
-    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+    member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
     if not member:
-       return
-        
+        return
+
     try:
         if len(args) % 3 != 0:
             await ctx.send("❌ გთხოვთ, მიუთითოთ თითოეული გუნდის მონაცემები (TeamName, Place, Kills).")
             return
 
-        # თითოეული გუნდის მონაცემების დამატება
         for i in range(0, len(args), 3):
             team_name = args[i]
             place = int(args[i+1])
             eliminations = int(args[i+2])
 
-            # ქულების გამოთვლა
             points = calculate_points(place, eliminations)
-            
-            # MongoDB-ში მონაცემების შენახვა
+
             collection.insert_one({
                 "user": ctx.author.name,
                 "team_name": team_name,
@@ -600,7 +616,7 @@ async def createresult(ctx, *args):
                 "eliminations": eliminations,
                 "points": points
             })
-            
+
             await ctx.send(f"✅ შედეგი შენახულია: {team_name} – {place} ადგილი, {eliminations} მკვლელობა – {points} ქულა")
 
     except Exception as e:
@@ -608,15 +624,15 @@ async def createresult(ctx, *args):
 
 # !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
-async def getresult(ctx):
-    
-    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+async def getresult(ctx): 
+    member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
     if not member:
-       return
-    
+        return
+
     results = list(collection.find())
     if not results:
         await ctx.send("📭 შედეგები არ არის.")
+        return
 
     msg = "**📊 შედეგების სია:**\n"
     for r in results:
@@ -626,12 +642,11 @@ async def getresult(ctx):
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
-async def resultclear(ctx):
-
-    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+async def resultclear(ctx):    
+    member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
     if not member:
-       return
-        
+        return
+
     collection.delete_many({})
     await ctx.send("🗑️ ყველა შედეგი წაიშალა.")
 
