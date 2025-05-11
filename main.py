@@ -46,7 +46,7 @@ client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
-collection = db["results"]
+collection = db["teams"]
 
 
 intents = discord.Intents.default()
@@ -559,97 +559,47 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
-def extract_points(teams):
-    results = []
+# ქულების გამოთვლა
+def calculate_points(place, eliminations):
     place_points = {1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2}
-    for index, (team_name, eliminations) in enumerate(teams):
-        place = index + 1  # Team places start from 1, 2, 3...
-        place_score = place_points.get(place, 1 if place >= 8 and place <= 12 else 0)
-        total_points = place_score + eliminations
-        results.append({
+    place_score = place_points.get(place, 1 if place >= 8 else 0)
+    return place_score + eliminations
+
+# !createresult - გუნდის მონაცემების შესატანად
+@bot.command()
+async def createresult(ctx, team_name: str, place: int, eliminations: int):
+    try:
+        # ქულების გამოთვლა
+        points = calculate_points(place, eliminations)
+        
+        # MongoDB-ში მონაცემების შენახვა
+        collection.insert_one({
+            "user": ctx.author.name,
             "team_name": team_name,
             "place": place,
             "eliminations": eliminations,
-            "points": total_points
+            "points": points
         })
-    return results
-
-def extract_teams(text):
-    teams = []
-    lines = text.splitlines()
-    print("OCR Output Lines:", lines)  # Log OCR lines
+        
+        await ctx.send(f"✅ შედეგი შენახულია: {team_name} – {place} ადგილი, {eliminations} მკვლელობა – {points} ქულა")
     
-    for line in lines:
-        line = line.lower()
-        # Extract team number and eliminations
-        if "team" in line and "eliminations" in line:
-            parts = line.split("|")
-            team_name = parts[0].strip()
-            eliminations = int(parts[1].split()[0].strip())  # Get first number for eliminations
-            teams.append((team_name, eliminations))
-    
-    print(f"Extracted teams and eliminations: {teams}")
-    return teams
-
-def ocr_space_image_url(image_url):
-    payload = {
-        'url': image_url,
-        'apikey': OCR_API_KEY,
-        'language': 'eng',
-    }
-    r = requests.post('https://api.ocr.space/parse/image', data=payload)
-    result = r.json()
-    text = result['ParsedResults'][0]['ParsedText']
-    
-    print("OCR Result:", text)  # Add this line to print OCR results for debugging
-    
-    return text
-
-@bot.command()
-async def resultpic(ctx):
-    await ctx.send("📸 გამოაგზავნეთ ფოტო (image attachment) რომ დავამუშაო")
-
-    def check(msg):
-        return msg.author == ctx.author and msg.attachments
-
-    try:
-        msg = await bot.wait_for('message', check=check, timeout=60.0)
-        for attachment in msg.attachments:
-            image_url = attachment.url
-            text = ocr_space_image_url(image_url)
-            teams = extract_teams(text)
-
-            if not teams:
-                await ctx.send("❌ ვერ ვიპოვე შედეგები ფოტოზე.")
-                return
-
-            results = extract_points(teams)
-
-            for result in results:
-                collection.insert_one({
-                    "user": ctx.author.name,
-                    "image": image_url,
-                    "place": result["place"],
-                    "kills": result["eliminations"],
-                    "points": result["points"]
-                })
-                await ctx.send(f"✅ შედეგი შენახულია: {result['place']} ადგილი, {result['eliminations']} მკვლელობა – {result['points']} ქულა")
-
     except Exception as e:
         await ctx.send(f"❌ შეცდომა: {e}")
 
+# !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
-async def resultsend(ctx):
+async def getresult(ctx):
     results = list(collection.find())
     if not results:
         await ctx.send("📭 შედეგები არ არის.")
 
     msg = "**📊 შედეგების სია:**\n"
     for r in results:
-        msg += f"- {r['user']}: {r['place']} ადგილი, {r['kills']} მკვლელობა – {r['points']} ქულა\n"
+        msg += f"- {r['team_name']} (მოთამაშე: {r['user']}) : {r['place']} ადგილი, {r['eliminations']} მკვლელობა – {r['points']} ქულა\n"
 
     await ctx.send(msg)
 
+# !resultclear - მონაცემების წაშლა
 @bot.command()
 async def resultclear(ctx):
     collection.delete_many({})
