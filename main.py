@@ -570,41 +570,43 @@ word_to_place = {
 }
 
 def extract_all_results(text):
-    lines = text.lower().splitlines()
+    lines = [l.strip().lower() for l in text.splitlines() if l.strip()]
     results = []
     i = 0
 
     while i < len(lines):
-        line = lines[i].strip()
+        line = lines[i]
 
-        # ამოიცნოს ადგილი როგორც რიცხვი ან სიტყვა
+        # ადგილი - ციფრებით ან სიტყვებით
         place = None
         if re.fullmatch(r'[1-9]|1[0-9]|20', line):
             place = int(line)
         elif line in word_to_place:
             place = word_to_place[line]
-
-        if place:
-            kills = 0
-            i += 1
-            while i < len(lines):
-                next_line = lines[i].strip()
-                if re.fullmatch(r'[1-9]|1[0-9]|20', next_line) or next_line in word_to_place:
-                    break
-                elim_match = re.findall(r'eliminations[:\s]*([0-9]+)', next_line)
-                for match in elim_match:
-                    kills += int(match)
-                i += 1
-
-            place_score = place_points.get(place, 1 if 8 <= place <= 12 else 0)
-            total_points = place_score + kills
-            results.append({
-                'place': place,
-                'kills': kills,
-                'points': total_points
-            })
         else:
             i += 1
+            continue
+
+        # თუ ადგილი მოიძებნა, შემდეგი ხაზებზე ვეძებთ eliminations
+        kills = 0
+        i += 1
+        while i < len(lines):
+            current_line = lines[i]
+            if re.fullmatch(r'[1-9]|1[0-9]|20', current_line) or current_line in word_to_place:
+                break
+            elim_match = re.search(r'eliminations[:\s]*([0-9]+)', current_line)
+            if elim_match:
+                kills += int(elim_match.group(1))
+            i += 1
+
+        place_score = place_points.get(place, 1 if 8 <= place <= 12 else 0)
+        total_points = place_score + kills
+
+        results.append({
+            'place': place,
+            'kills': kills,
+            'points': total_points
+        })
 
     return results
 
