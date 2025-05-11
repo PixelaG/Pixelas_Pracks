@@ -564,31 +564,39 @@ place_points = {
 }
 # 8–12 = 1 point, 13–20 = 0
 
-def extract_points(text):
-    place = None
-    kills = 0
+def extract_all_results(text):
     lines = text.lower().splitlines()
+    results = []
+    i = 0
 
-    for i, line in enumerate(lines):
-        # ვამოწმებთ თუ ხაზი შეიცავს მხოლოდ რიცხვს (1-დან 20-მდე), რაც ნიშნავს ადგილს
-        if line.strip().isdigit():
-            possible_place = int(line.strip())
-            if 1 <= possible_place <= 20:
-                place = possible_place
-                # შემდეგ ვეძებთ eliminations-ებს ამ გუნდის ფარგლებში
-                j = i + 1
-                while j < len(lines):
-                    if lines[j].strip().isdigit():
-                        break  # შემდეგი გუნდი იწყება
-                    if 'eliminations' in lines[j]:
-                        match = re.search(r'eliminations[:\s]+(\d+)', lines[j])
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.isdigit():
+            place = int(line)
+            if 1 <= place <= 20:
+                kills = 0
+                i += 1
+                while i < len(lines):
+                    next_line = lines[i].strip()
+                    if next_line.isdigit():  # შემდეგი გუნდი იწყება
+                        break
+                    if 'eliminations' in next_line:
+                        match = re.search(r'eliminations[:\s]+(\d+)', next_line)
                         if match:
                             kills += int(match.group(1))
-                    j += 1
-                break  # მხოლოდ ერთი გუნდი გვაინტერესებს
+                    i += 1
 
-    place_score = place_points.get(place, 1 if place and 8 <= place <= 12 else 0) if place else 0
-    return place, kills, place_score + kills
+                place_score = place_points.get(place, 1 if 8 <= place <= 12 else 0)
+                total_points = place_score + kills
+                results.append({
+                    'place': place,
+                    'kills': kills,
+                    'points': total_points
+                })
+                continue
+        i += 1
+
+    return results
 
 def ocr_space_image_url(image_url):
     payload = {
@@ -607,7 +615,7 @@ def ocr_space_image_url(image_url):
 
 @bot.command()
 async def resultpic(ctx):
-    await ctx.send("📸 გამოაგზავნეთ ფოტო (image attachment), რომ დავამუშაო")
+    await ctx.send("📸 გამოაგზავნეთ ფოტო (image attachment) რომ დავამუშაო")
 
     def check(msg):
         return msg.author == ctx.author and msg.attachments
@@ -616,18 +624,25 @@ async def resultpic(ctx):
         msg = await bot.wait_for('message', check=check, timeout=60.0)
         for attachment in msg.attachments:
             image_url = attachment.url
-            text = ocr_space_image_url(image_url)  # OCR პროცესირება
-            print(f"OCR შედეგი: {text}")  # OCR ტექსტი კონსოლში
-            place, kills, total_points = extract_points(text)  # მონაცემების გადამუშავება
-            print(f"მონაცემები: ადგილი {place}, მკვლელობები {kills}, ქულები {total_points}")  # გადამუშავებული მონაცემები
-            collection.insert_one({
-                "user": ctx.author.name,
-                "image": image_url,
-                "place": place,
-                "kills": kills,
-                "points": total_points
-            })
-            await ctx.send(f"✅ შედეგი შენახულია: {place} ადგილი, {kills} მკვლელობა – {total_points} ქულა")
+            text = ocr_space_image_url(image_url)
+            results = extract_all_results(text)
+
+            if not results:
+                await ctx.send("❌ ვერ მოიძებნა შედეგები ფოტოში.")
+                return
+
+            response = "✅ შედეგები:\n"
+            for res in results:
+                collection.insert_one({
+                    "user": ctx.author.name,
+                    "image": image_url,
+                    "place": res["place"],
+                    "kills": res["kills"],
+                    "points": res["points"]
+                })
+                response += f"- {res['place']} ადგილი – {res['kills']} მკვლელობა – {res['points']} ქულა\n"
+
+            await ctx.send(response)
 
     except Exception as e:
         await ctx.send(f"❌ შეცდომა: {e}")
