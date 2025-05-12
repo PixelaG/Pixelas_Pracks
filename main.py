@@ -103,7 +103,7 @@ async def on_message(message):
     pattern = r"^[^/\|\n]+[ /|][^/\|\n]+[ /|]<@!?[0-9]+>$"
 
     if not re.match(pattern, message.content.strip()):
-    return
+        return
 
     # ყველა დროის არხების და როლების შემოწმება
     time_configs = [
