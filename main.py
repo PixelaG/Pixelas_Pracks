@@ -570,6 +570,10 @@ async def createteamlist_22(interaction: discord.Interaction):
                 {"guild_id": guild_id},
                 {"$pull": {"registered_messages_22:00": {"message_id": entry["message_id"]}}}
             )
+        except discord.HTTPException as e:
+            print(f"HTTP error occurred: {e}")
+        except discord.Forbidden as e:
+            print(f"Permission error occurred: {e}")
 
     if not valid_messages:
         await interaction.followup.send("⚠️ დარეგისტრირებული შეტყობინებები ვერ მოიძებნა.")
@@ -577,7 +581,7 @@ async def createteamlist_22(interaction: discord.Interaction):
 
     def to_fancy_number(n):
         num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
-        return ''.join(num_map[d] for d in f"{n:02}")
+        return ''.join(num_map.get(d, d) for d in f"{n:02}")
 
     lines = [
         f"> {to_fancy_number(i)}. {valid_messages[25 - i]}" if 25 - i < len(valid_messages)
