@@ -1,3 +1,5 @@
+from bot_instance import bot
+
 @bot.tree.command(name="regchannel_19_00", description="დაარეგისტრირე არხი 19:00 როლით")
 @app_commands.describe(channel="არხის ID", role_19_00="19:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
 @app_commands.checks.has_permissions(administrator=True)
