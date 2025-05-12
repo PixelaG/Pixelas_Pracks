@@ -97,35 +97,48 @@ async def on_message(message):
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
-    if record and "channel_id_22_00" in record and message.channel.id == record["channel_id_22_00"]:
-        try:
-            banned_role_id = record["banned_role"]
-            banned_role = message.guild.get_role(banned_role_id)
+    if not record:
+        return
 
-            if banned_role in message.author.roles:
-                await message.add_reaction("❌")
-                return
-            
-            pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
-            if not re.match(pattern, message.content.strip()):
-                return
+    try:
+        banned_role_id = record.get("banned_role")
+        banned_role = message.guild.get_role(banned_role_id)
 
-            await message.add_reaction("✅")
-            role = message.guild.get_role(record["role_22_00"])
-            if role:
-                await message.author.add_roles(role)
+        if banned_role and banned_role in message.author.roles:
+            await message.add_reaction("❌")
+            return
 
-            channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$addToSet": {"registered_messages_22:00": {
-                    "message_id": message.id,
-                    "content": message.content
-                }}},
-                upsert=True
-            )
+        pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+        if not re.match(pattern, message.content.strip()):
+            return
 
-        except Exception as e:
-            print(f"[ERROR] {e}")
+        # დროების სია
+        time_slots = ["19_00", "22_00", "00_30"]
+
+        for slot in time_slots:
+            channel_key = f"channel_id_{slot}"
+            role_key = f"role_{slot}"
+            messages_key = f"registered_messages_{slot.replace('_', ':')}"
+
+            if channel_key in record and message.channel.id == record[channel_key]:
+                await message.add_reaction("✅")
+
+                role = message.guild.get_role(record.get(role_key))
+                if role:
+                    await message.author.add_roles(role)
+
+                channel_collection.update_one(
+                    {"guild_id": guild_id},
+                    {"$addToSet": {messages_key: {
+                        "message_id": message.id,
+                        "content": message.content
+                    }}},
+                    upsert=True
+                )
+                break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
+
+    except Exception as e:
+        print(f"[ERROR] {e}")
 
     await bot.process_commands(message)
 
