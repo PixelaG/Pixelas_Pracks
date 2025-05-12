@@ -100,7 +100,10 @@ async def on_message(message):
         return
 
     # სწორი შეტყობინების ფორმატის regex (დაშვებულია / ან | სეპარატორად)
-    pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+    pattern = r"^[^/\|\n]+[ /|][^/\|\n]+[ /|]<@!?[0-9]+>$"
+
+    if not re.match(pattern, message.content.strip()):
+    return
 
     # ყველა დროის არხების და როლების შემოწმება
     time_configs = [
