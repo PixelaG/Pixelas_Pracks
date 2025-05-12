@@ -149,6 +149,34 @@ async def on_message(message):
             break  # გაჩერდეს ციკლი რადგან შესაბამისი არხი უკვე მოიძებნა
 
     await bot.process_commands(message)
+
+
+@bot.event
+async def on_message_delete(message):
+    if message.author.bot or not message.guild:
+        return
+
+    guild_id = message.guild.id
+    record = channel_collection.find_one({"guild_id": guild_id})
+
+    if not record:
+        return
+
+    # ყველა დროის ვერსია (22:00, 19:00, 00:30)
+    for time_key in ["22:00", "19:00", "00:30"]:
+        channel_id_key = f"channel_id_{time_key}"
+        role_key = f"role_{time_key}"
+        registered_messages_key = f"registered_messages_{time_key}"
+
+        if channel_id_key in record and message.channel.id == record[channel_id_key]:
+            # წაშლის მონაცემის ამოღება
+            result = channel_collection.update_one(
+                {"guild_id": guild_id},
+                {"$pull": {registered_messages_key: {"message_id": message.id}}}
+            )
+
+            if result.modified_count > 0:
+                print(f"[INFO] Removed deleted message from {registered_messages_key}")
         
 
 async def check_expired_roles():
