@@ -97,77 +97,100 @@ async def on_message(message):
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
-    if not record:
-        print(f"[ERROR] არხის ჩანაწერი ვერ მოიძებნა guild_id: {guild_id}")
-        return
-
     try:
-        banned_role_id = record.get("banned_role")
-        banned_role = message.guild.get_role(banned_role_id)
+        if record:
+            banned_role_id = record.get("banned_role")
+            banned_role = message.guild.get_role(banned_role_id)
 
-        if banned_role and banned_role in message.author.roles:
-            await message.add_reaction("❌")
-            return
+            if banned_role and banned_role in message.author.roles:
+                await message.add_reaction("❌")
+            else:
+                pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+                match = re.match(pattern, message.content.strip())
 
-        # Regex-ი გთხოვთ ცალსახად შეამოწმოთ
-        pattern = r"^(Team[^\s]+) / (PS) / <@!?([0-9]+)>$"
-        match = re.match(pattern, message.content.strip())
+                if match:
+                    # დროების სია
+                    time_slots = ["19_00", "22_00", "00_30"]
 
-        if match:
-            team_name = match.group(1).capitalize()  # ასოების შეცვლა
-            ps = match.group(2)
-            tag = match.group(3)
+                    for slot in time_slots:
+                        channel_key = f"channel_id_{slot}"
+                        role_key = f"role_{slot}"
+                        messages_key = f"registered_messages_{slot.replace('_', ':')}"
 
-            time_slots = ["19_00", "22_00", "00_30"]
+                        if channel_key in record and message.channel.id == record[channel_key]:
+                            await message.add_reaction("✅")
 
-            for slot in time_slots:
-                channel_key = f"channel_id_{slot}"
-                role_key = f"role_{slot}"
-                messages_key = f"registered_messages_{slot.replace('_', ':')}"
+                            role = message.guild.get_role(record.get(role_key))
+                            if role:
+                                await message.author.add_roles(role)
 
-                if channel_key in record and message.channel.id == record[channel_key]:
-                    print(f"✅ არხი ემთხვევა: {message.channel.id} - {record[channel_key]}")
-                    await message.add_reaction("✅")
-
-                    role = message.guild.get_role(record.get(role_key))
-                    if role:
-                        await message.author.add_roles(role)
-                        print(f"✅ როლი დაემატა: {role.name} -> {message.author.display_name}")
-
-                    # MongoDB განახლება
-                    channel_collection.update_one(
-                        {"guild_id": guild_id},
-                        {"$addToSet": {messages_key: {
-                            "message_id": message.id,
-                            "content": f"{team_name} / {ps} / <@!{tag}>"
-                        }}},
-                        upsert=True
-                    )
-                    print(f"✅ MongoDB განახლდა: {team_name} / {ps} / <@!{tag}>")
-                    break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
-
-        else:
-            print(f"[ERROR] ფორმატი არასწორია: {message.content.strip()}")
+                            # განახლება MongoDB-ში
+                            channel_collection.update_one(
+                                {"guild_id": guild_id},
+                                {"$addToSet": {messages_key: {
+                                    "message_id": message.id,
+                                    "content": message.content
+                                }}},
+                                upsert=True
+                            )
+                            break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
+                else:
+                    # შეცდომის შემთხვევაში (არასწორი ფორმატი)
+                    await message.add_reaction("❌")
 
     except Exception as e:
         print(f"[ERROR] {e}")
 
+    # prefix ქომანდების მუშაობა
     await bot.process_commands(message)
 
+            # რედაქტირება (თუ ფორმატი შეცვლილია)
 
 @bot.event
 async def on_message_edit(before, after):
-    if after.author.bot or not after.guild:
+    if before.author.bot or not after.guild:
         return
 
-    if before.content == after.content:
-        return  # რეალური ცვლილება არ ყოფილა
+    guild_id = after.guild.id
+    record = channel_collection.find_one({"guild_id": guild_id})
 
     try:
-        # როდესაც მომხმარებელი რედაქტირებს შეტყობინებას, ახალ ფორმატში უნდა შევიტანოთ MongoDB-ში
-        await on_message(after)
+        if record:
+            banned_role_id = record.get("banned_role")
+            banned_role = after.guild.get_role(banned_role_id)
+
+            if banned_role and banned_role in after.author.roles:
+                await after.add_reaction("❌")
+            else:
+                # მხოლოდ თუ შეტყობინების ფორმატი შეცვლილია
+                pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+                if re.match(pattern, after.content.strip()):
+                    # ახალი შეტყობინება განახლდება TeamList-ში
+                    time_slots = ["19_00", "22_00", "00_30"]
+
+                    for slot in time_slots:
+                        channel_key = f"channel_id_{slot}"
+                        messages_key = f"registered_messages_{slot.replace('_', ':')}"
+
+                        if channel_key in record and after.channel.id == record[channel_key]:
+                            # MongoDB განახლება
+                            channel_collection.update_one(
+                                {"guild_id": guild_id},
+                                {"$pull": {messages_key: {"message_id": before.id}}},  # ძველი შეტყობინების ამოშლა
+                                upsert=True
+                            )
+                            channel_collection.update_one(
+                                {"guild_id": guild_id},
+                                {"$addToSet": {messages_key: {
+                                    "message_id": after.id,
+                                    "content": after.content
+                                }}},
+                                upsert=True
+                            )
+                            break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
+
     except Exception as e:
-        print(f"[ERROR - on_message_edit] {e}")
+        print(f"[ERROR] {e}")
 
 
 
