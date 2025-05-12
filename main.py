@@ -331,31 +331,26 @@ async def reg_22_00(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
     try:
-        
         await interaction.response.defer(ephemeral=True)
 
-        
         member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
         if not member:
             return
 
-       
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
 
-        if not record or "registered_messages" not in record:
-            await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული.")
+        if not record or "registered_messages_22:00" not in record:
+            await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 22:00-ზე.")
             return
 
-        
         team_channel_id = record.get("teamlist_channel")
         team_channel = interaction.guild.get_channel(team_channel_id)
         if not team_channel:
             await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
             return
 
-        
-        entries = record["registered_messages"]
+        entries = record.get("registered_messages_22:00", [])
         messages = [entry["content"] for entry in entries]
 
         def to_fancy_number(n):
@@ -390,7 +385,7 @@ async def createteamlist(interaction: discord.Interaction):
 
 
 
-@bot.tree.command(name="clearlist", description="წაშალე Team List")
+@bot.tree.command(name="clearlist_22_00", description="წაშალე Team List")
 @app_commands.checks.has_permissions(administrator=True)
 async def clearlist(interaction: discord.Interaction):
 
@@ -741,16 +736,16 @@ async def custom_help(ctx):
     embed.add_field(
         name="🧩 **Slash ბრძანებები**",
         value=(
-            "`/regchannel_22_00` – რეგისტრაციის არხის დაყენება\n"
-            "`/reg_22_00` – მოთამაშის რეგისტრაცია\n"
-            "`/createteamlist_22_00` – გუნდების სიების შექმნა\n"
-            "`/clearlist` – სიების გასუფთავება\n"
-            "`/unlist` – რეგისტრაციის მოხსნა"
+            "`/regchannel_22_00` – რეგისტრაციის დაყენება\n"
+            "`/reg_22_00` – რეგისტრაციის გახსნა\n"
+            "`/createteamlist_22_00` – Team List - ის შექმნა\n"
+            "`/clearlist` – Team List - ის გასუფთავება\n"
+            "`/unlist` – Team List - იდან ამოსმა"
         ),
         inline=False
     )
 
-    embed.set_footer(text="Bot by PixelasADV | გამოიყენე ბრძანებები გონივრულად 🤖")
+    embed.set_footer(text="Bot by Pixelas Pracks | გამოიყენე ბრძანებები გონივრულად 🤖")
     
     await ctx.send(embed=embed)
 
