@@ -67,7 +67,7 @@ class NineteenCommands(commands.Cog):
         channel_collection.update_one(
             {"guild_id": guild_id},
             {"$set": {
-                "channel_id": channel.id,
+                "channel_id_19_00": channel.id,
                 "role_19_00": role_19_00.id,
                 "banned_role": banned_role.id,
                 "teamlist_channel_19:00": teamlist_channel.id
