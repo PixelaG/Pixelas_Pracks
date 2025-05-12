@@ -407,10 +407,8 @@ async def reg_19_00(interaction: discord.Interaction):
 
 @bot.tree.command(name="createteamlist_19_00", description="შექმნის Team List 19:00")
 @app_commands.checks.has_permissions(administrator=True)
-async def createteamlist(interaction: discord.Interaction):
+async def createteamlist_19_00(interaction: discord.Interaction):
     try:
-        await interaction.response.defer(ephemeral=True)
-
         member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
         if not member:
             return
@@ -419,42 +417,24 @@ async def createteamlist(interaction: discord.Interaction):
         record = channel_collection.find_one({"guild_id": guild_id})
 
         if not record or "registered_messages_19:00" not in record:
-            await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 19:00-ზე.")
+            await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 19:00-ზე.", ephemeral=True)
             return
 
         team_channel_id = record.get("teamlist_channel_19:00")
         team_channel = interaction.guild.get_channel(team_channel_id)
         if not team_channel:
-            await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
+            await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.", ephemeral=True)
             return
 
-        registered_entries = record.get("registered_messages_19:00", [])
-        valid_messages = []
-
-        reg_channel_id = record.get("channel_id_19_00")
-        reg_channel = interaction.guild.get_channel(reg_channel_id)
-
-        for entry in registered_entries[:]:  # [:] — უსაფრთხო წაშლა ციკლის დროს
-            try:
-                msg = await reg_channel.fetch_message(entry["message_id"])
-                valid_messages.append(msg.content)
-            except discord.NotFound:
-                # წაშლილია — ამოიშალოს MongoDB-დანაც
-                channel_collection.update_one(
-                    {"guild_id": guild_id},
-                    {"$pull": {"registered_messages_19:00": {"message_id": entry["message_id"]}}}
-                )
-
-        if not valid_messages:
-            await interaction.followup.send("⚠️ დარეგისტრირებული შეტყობინებები ვერ მოიძებნა.")
-            return
+        entries = record.get("registered_messages_19:00", [])
+        messages = [entry["content"] for entry in entries]
 
         def to_fancy_number(n):
-            num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟯', '8': '𝟴', '9': '𝟵'}
+            num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
             return ''.join(num_map[d] for d in f"{n:02}")
 
         lines = [
-            f"> {to_fancy_number(i)}. {valid_messages[25 - i]}" if 25 - i < len(valid_messages)
+            f"> {to_fancy_number(i)}. {messages[25 - i]}" if 25 - i < len(messages)
             else f"> {to_fancy_number(i)}."
             for i in range(25, 0, -1)
         ]
@@ -469,10 +449,10 @@ async def createteamlist(interaction: discord.Interaction):
         )
 
         await team_channel.send(message)
-        await interaction.response.send_message("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
+        await interaction.response.send_message("✅ Team List 19:00 წარმატებით შეიქმნა!", ephemeral=True)
 
     except Exception as e:
-        print(f"Error in createteamlist: {e}")
+        print(f"Error in createteamlist_19_00: {e}")
         await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
 
@@ -726,69 +706,51 @@ async def reg_00_30(interaction: discord.Interaction):
 @bot.tree.command(name="createteamlist_00_30", description="შექმნის Team List 00:30")
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist_00_30(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
+    try:
+        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+        if not member:
+            return
 
-    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
-    if not member:
-        return
+        guild_id = interaction.guild.id
+        record = channel_collection.find_one({"guild_id": guild_id})
 
-    guild_id = interaction.guild.id
-    record = channel_collection.find_one({"guild_id": guild_id})
+        if not record or "registered_messages_00:30" not in record:
+            await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 00:30-ზე.", ephemeral=True)
+            return
 
-    if not record or "registered_messages_00:30" not in record:
-        await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 00:30-ზე.")
-        return
+        team_channel_id = record.get("teamlist_channel_00:30")
+        team_channel = interaction.guild.get_channel(team_channel_id)
+        if not team_channel:
+            await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.", ephemeral=True)
+            return
 
-    team_channel_id = record.get("teamlist_channel_00:30")
-    team_channel = interaction.guild.get_channel(team_channel_id)
-    if not team_channel:
-        await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
-        return
+        entries = record.get("registered_messages_00:30", [])
+        messages = [entry["content"] for entry in entries]
 
-    registered_entries = record.get("registered_messages_00:30", [])
-    valid_messages = []
+        def to_fancy_number(n):
+            num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
+            return ''.join(num_map[d] for d in f"{n:02}")
 
-    reg_channel = interaction.guild.get_channel(record.get("channel_id_00_30"))
+        lines = [
+            f"> {to_fancy_number(i)}. {messages[25 - i]}" if 25 - i < len(messages)
+            else f"> {to_fancy_number(i)}."
+            for i in range(25, 0, -1)
+        ]
 
-    for entry in registered_entries[:]:
-        try:
-            msg = await reg_channel.fetch_message(entry["message_id"])
-            valid_messages.append(msg.content)
-        except discord.NotFound:
-            # წაშლილი შეტყობინების ამოღება ბაზიდან
-            channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$pull": {"registered_messages_00:30": {"message_id": entry["message_id"]}}}
-            )
+        lines.reverse()
 
-    if not valid_messages:
-        await interaction.followup.send("⚠️ დარეგისტრირებული შეტყობინებები ვერ მოიძებნა.")
-        return
-
-    def to_fancy_number(n):
-        num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
-        return ''.join(num_map[d] for d in f"{n:02}")
-
-    lines = [
-        f"> {to_fancy_number(i)}. {valid_messages[25 - i]}" if 25 - i < len(valid_messages)
-        else f"> {to_fancy_number(i)}."
-        for i in range(25, 0, -1)
-    ]
-
-    lines.reverse()
-
-    message = (
-        "> \n"
-        ">                  __**TEAM LIST**__\n"
-        ">                       **00:30**\n"
-        + "\n".join(lines)
-    )
+        message = (
+            "> \n"
+            ">                  __**TEAM LIST**__\n"
+            ">                        **00:30**\n"
+            + "\n".join(lines)
+        )
 
         await team_channel.send(message)
-        await interaction.response.send_message("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
+        await interaction.response.send_message("✅ Team List 00:30 წარმატებით შეიქმნა!", ephemeral=True)
 
     except Exception as e:
-        print(f"Error in createteamlist: {e}")
+        print(f"Error in createteamlist_00_30: {e}")
         await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
 @bot.tree.command(name="clearlist_00_30", description="წაშალე Team List 00:30")
