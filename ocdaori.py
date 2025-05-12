@@ -58,7 +58,7 @@ class TwentyTwoCommands(commands.Cog):
     @app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
     @app_commands.checks.has_permissions(administrator=True)
     async def regchannel_22_00(self, interaction: discord.Interaction, channel: discord.TextChannel, role_22_00: discord.Role, banned_role: discord.Role, teamlist_channel: discord.TextChannel):
-        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952, interaction.guild_id)
         if not member:
             return
         
@@ -86,7 +86,7 @@ class TwentyTwoCommands(commands.Cog):
     @app_commands.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
     @app_commands.checks.has_permissions(administrator=True)
     async def reg_22_00(self, interaction: discord.Interaction):
-        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952, interaction.guild_id)
         if not member:
             return
         
@@ -121,7 +121,7 @@ class TwentyTwoCommands(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=True)
 
-            member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+            member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952, interaction.guild_id)
             if not member:
                 return
 
@@ -174,7 +174,7 @@ class TwentyTwoCommands(commands.Cog):
     @app_commands.command(name="clearlist_22_00", description="წაშალე Team List 22:00")
     @app_commands.checks.has_permissions(administrator=True)
     async def clearlist_22_00(self, interaction: discord.Interaction):
-        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952, interaction.guild_id)
         if not member:
             return
 
