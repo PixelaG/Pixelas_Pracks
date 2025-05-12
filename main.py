@@ -97,47 +97,76 @@ async def on_message(message):
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
+    if not record:
+        return
+
     try:
-        if record:
-            banned_role_id = record.get("banned_role")
-            banned_role = message.guild.get_role(banned_role_id)
+        banned_role_id = record.get("banned_role")
+        banned_role = message.guild.get_role(banned_role_id)
 
-            if banned_role and banned_role in message.author.roles:
-                await message.add_reaction("❌")
+        if banned_role and banned_role in message.author.roles:
+            await message.add_reaction("❌")
+            return
 
-            else:
-                pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
-                if re.match(pattern, message.content.strip()):
-                    # დროების სია
-                    time_slots = ["19_00", "22_00", "00_30"]
+        # ფორმატის მორგებული რეგულარული გამონათქვამი
+        pattern = r"^(Team[^\s]+) / (PS) / <@!?([0-9]+)>$"
+        match = re.match(pattern, message.content.strip())
 
-                    for slot in time_slots:
-                        channel_key = f"channel_id_{slot}"
-                        role_key = f"role_{slot}"
-                        messages_key = f"registered_messages_{slot.replace('_', ':')}"
+        if match:
+            # თუ ფორმატი სწორია, მაგრამ სიტყვები მცირე ასოებით არის დაწერილი
+            team_name = match.group(1).capitalize()  # ასოების შეცვლა
+            ps = match.group(2)
+            tag = match.group(3)
 
-                        if channel_key in record and message.channel.id == record[channel_key]:
-                            await message.add_reaction("✅")
+            time_slots = ["19_00", "22_00", "00_30"]
 
-                            role = message.guild.get_role(record.get(role_key))
-                            if role:
-                                await message.author.add_roles(role)
+            for slot in time_slots:
+                channel_key = f"channel_id_{slot}"
+                role_key = f"role_{slot}"
+                messages_key = f"registered_messages_{slot.replace('_', ':')}"
 
-                            channel_collection.update_one(
-                                {"guild_id": guild_id},
-                                {"$addToSet": {messages_key: {
-                                    "message_id": message.id,
-                                    "content": message.content
-                                }}},
-                                upsert=True
-                            )
-                            break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
+                if channel_key in record and message.channel.id == record[channel_key]:
+                    await message.add_reaction("✅")
+
+                    role = message.guild.get_role(record.get(role_key))
+                    if role:
+                        await message.author.add_roles(role)
+
+                    # MongoDB-ში განახლებული შეტყობინების ჩაწერა
+                    channel_collection.update_one(
+                        {"guild_id": guild_id},
+                        {"$addToSet": {messages_key: {
+                            "message_id": message.id,
+                            "content": f"{team_name} / {ps} / <@!{tag}>"
+                        }}},
+                        upsert=True
+                    )
+                    break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
+
+        else:
+            # ფორმატი არასწორია, ❌ რეაქცია არ უნდა მივცეთ
+            pass
 
     except Exception as e:
         print(f"[ERROR] {e}")
 
-    # აუცილებლად ბოლოს — ამის შემდეგ რომ prefix ქომანდებიც იმუშაოს
     await bot.process_commands(message)
+
+
+@bot.event
+async def on_message_edit(before, after):
+    if after.author.bot or not after.guild:
+        return
+
+    if before.content == after.content:
+        return  # რეალური ცვლილება არ ყოფილა
+
+    try:
+        # როდესაც მომხმარებელი რედაქტირებს შეტყობინებას, ახალ ფორმატში უნდა შევიტანოთ MongoDB-ში
+        await on_message(after)
+    except Exception as e:
+        print(f"[ERROR - on_message_edit] {e}")
+
 
 
 @bot.event
