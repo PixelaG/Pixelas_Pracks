@@ -11,28 +11,31 @@ async def regchannel_00_30(interaction: discord.Interaction, channel: discord.Te
 
     member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
     if not member:
-        return
+       return
     
     guild_id = interaction.guild.id
 
-    channel_collection.update_one(
-        {"guild_id": guild_id},
-        {"$set": {
-            "channel_id": channel.id,
-            "role_00_30": role_00_30.id,
-            "banned_role": banned_role.id,
-            "teamlist_channel_00:30": teamlist_channel.id
-        }},
-        upsert=True
-    )
-
     try:
+        # MongoDB-ში მონაცემების განახლება
+        channel_collection.update_one(
+            {"guild_id": guild_id},
+            {"$set": {
+                "channel_id_00_30": channel.id,
+                "role_00_30": role_00_30.id,
+                "banned_role": banned_role.id,
+                "teamlist_channel_00:30": teamlist_channel.id
+            }},
+            upsert=True
+        )
+        
         await interaction.response.send_message(
             f"✅ არხი {channel.name} და როლები წარმატებით დარეგისტრირდა MongoDB-ში!\n"
             f"📄 Team List Channel: {teamlist_channel.name}"
         )
+
     except Exception as e:
-        print(f"Error sending response: {e}")
+        print(f"Error during registration: {e}")
+        await interaction.response.send_message(f"⚠️ ქომანდის შესრულებისას მოხდა შეცდომა. დეტალები: {e}", ephemeral=True)
 
 
 @bot.tree.command(name="reg_00_30", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
