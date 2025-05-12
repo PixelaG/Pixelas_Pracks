@@ -97,68 +97,49 @@ async def on_message(message):
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
-    if not record:
-        print(f"[INFO] No record found for guild_id: {guild_id}")
-        return
+    if record:
+        # აქ ვამოწმებთ, რომ წერის არხი გახლავთ ერთ-ერთი შესაბამისი არხი
+        for time_key in ["22:00", "19:00", "00:30"]:
+            channel_id_key = f"channel_id_{time_key}"
+            role_key = f"role_{time_key}"
+            registered_messages_key = f"registered_messages_{time_key}"
 
-    # სწორი შეტყობინების ფორმატის regex (დაშვებულია / ან | სეპარატორად)
-    pattern = r"^[^/\|\n]+[ /|][^/\|\n]+[ /|]<@!?[0-9]+>$"
-    content = message.content.strip()
-
-    if not re.match(pattern, content):
-        print(f"[INFO] Message format is incorrect: {content}")
-        return
-
-    time_configs = [
-        ("channel_id_22_00", "role_22_00", "registered_messages_22:00"),
-        ("channel_id_19_00", "role_19_00", "registered_messages_19:00"),
-        ("channel_id_00_30", "role_00_30", "registered_messages_00:30")
-    ]
-
-    for channel_key, role_key, message_key in time_configs:
-        if channel_key in record and message.channel.id == record[channel_key]:
-            print(f"[INFO] Message in correct channel: {message.channel.id}")
-
-            try:
-                # Check banned role
-                banned_role_id = record.get("banned_role")
-                if banned_role_id:
+            if channel_id_key in record and message.channel.id == record[channel_id_key]:
+                try:
+                    banned_role_id = record.get("banned_role")
                     banned_role = message.guild.get_role(banned_role_id)
-                    if banned_role and banned_role in message.author.roles:
+
+                    # თუ მომხმარებელი ბლოკირებულია
+                    if banned_role in message.author.roles:
                         await message.add_reaction("❌")
-                        print(f"[INFO] User has banned role: {banned_role.name}")
                         return
 
-                # Get the role ID from the record
-                role_id = record.get(role_key)
-                if not role_id:
-                    print(f"[INFO] No role ID found for {role_key}")
-                    return
+                    # რეგულარული გამოხმაურება
+                    pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+                    if not re.match(pattern, message.content.strip()):
+                        return
 
-                role = message.guild.get_role(role_id)
-                if role:
-                    await message.author.add_roles(role)
                     await message.add_reaction("✅")
-                    print(f"[INFO] Role {role.name} assigned to user: {message.author.name}")
-                else:
-                    print(f"[INFO] Role with ID {role_id} not found in guild.")
 
-                # Save the message in MongoDB
-                channel_collection.update_one(
-                    {"guild_id": guild_id},
-                    {"$addToSet": {
-                        message_key: {
+                    # შესაბამისი როლის მიღება და მიცემა
+                    role_id = record.get(role_key)
+                    if role_id:
+                        role = message.guild.get_role(role_id)
+                        if role:
+                            await message.author.add_roles(role)
+
+                    # MongoDB-ში შეტყობინების შესანახად
+                    channel_collection.update_one(
+                        {"guild_id": guild_id},
+                        {"$addToSet": {registered_messages_key: {
                             "message_id": message.id,
                             "content": message.content
-                        }
-                    }},
-                    upsert=True
-                )
-                print(f"[INFO] Registered message: {content} in MongoDB")
+                        }}},
+                        upsert=True
+                    )
 
-            except Exception as e:
-                print(f"[ERROR - on_message]: {e}")
-            break  # Stop further checks if one valid channel is found
+                except Exception as e:
+                    print(f"[ERROR] {e}")
 
     await bot.process_commands(message)
 
