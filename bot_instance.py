@@ -13,4 +13,4 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 
 intents = Intents.all()
-bot = commands.Bot(command_prefix="p!", intents=intents)
+bot = commands.Bot(command_prefix="p!", intents=intents, help_command=None)
