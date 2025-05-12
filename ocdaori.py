@@ -67,7 +67,7 @@ class TwentyTwoCommands(commands.Cog):
         channel_collection.update_one(
             {"guild_id": guild_id},
             {"$set": {
-                "channel_id": channel.id,
+                "channel_id_22_00": channel.id,
                 "role_22_00": role_22_00.id,
                 "banned_role": banned_role.id,
                 "teamlist_channel_22:00": teamlist_channel.id
