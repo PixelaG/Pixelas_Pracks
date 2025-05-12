@@ -24,7 +24,7 @@ async def send_embed_notification(interaction, title, description, color=discord
     except discord.HTTPException as e:
         print(f"⚠ HTTP შეცდომა Embed-ის გაგზავნისას: {e}")
 
-async def check_user_permissions(interaction, required_role_id: int, guild_id: int):
+async def check_user_permissions(bot, interaction, required_role_id: int, guild_id: int):
     home_guild = discord.utils.get(bot.guilds, id=guild_id)
     if not home_guild:
         await send_embed_notification(interaction, "⚠️ მთავარი სერვერი არ არის ნაპოვნი", "⌚️ სცადეთ მოგვიანებით.")
