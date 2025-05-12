@@ -160,7 +160,7 @@ async def on_message_delete(message):
     record = channel_collection.find_one({"guild_id": guild_id})
 
     if not record:
-        return
+        return  # აქ აკლდა ეს სტრიქონი, ამიტომ იყო შეცდომა
 
     # ყველა დროის ვერსია (22:00, 19:00, 00:30)
     for time_key in ["22:00", "19:00", "00:30"]:
@@ -169,7 +169,6 @@ async def on_message_delete(message):
         registered_messages_key = f"registered_messages_{time_key}"
 
         if channel_id_key in record and message.channel.id == record[channel_id_key]:
-            # წაშლის მონაცემის ამოღება
             result = channel_collection.update_one(
                 {"guild_id": guild_id},
                 {"$pull": {registered_messages_key: {"message_id": message.id}}}
