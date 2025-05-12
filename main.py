@@ -96,7 +96,9 @@ async def on_message(message):
 
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
+
     if not record:
+        print(f"[INFO] No record found for guild_id: {guild_id}")
         return
 
     # სწორი შეტყობინების ფორმატის regex (დაშვებულია / ან | სეპარატორად)
@@ -104,6 +106,7 @@ async def on_message(message):
     content = message.content.strip()
 
     if not re.match(pattern, content):
+        print(f"[INFO] Message format is incorrect: {content}")
         return
 
     # ყველა დროის არხების და როლების შემოწმება
@@ -114,27 +117,28 @@ async def on_message(message):
     ]
 
     for channel_key, role_key, message_key in time_configs:
-        # მონიშნულ არხთან შედარება
+        # Check if we have the right channel
         if channel_key in record and message.channel.id == record[channel_key]:
-            try:
-                print(f"Checked channel: {message.channel.id}, expected: {record[channel_key]}")  # print check
+            print(f"[INFO] Message in correct channel: {message.channel.id}")
 
-                # აკრძალული როლის შემოწმება
+            try:
+                # Check banned role
                 banned_role_id = record.get("banned_role")
                 if banned_role_id:
                     banned_role = message.guild.get_role(banned_role_id)
                     if banned_role and banned_role in message.author.roles:
                         await message.add_reaction("❌")
+                        print(f"[INFO] User has banned role: {banned_role.name}")
                         return
 
-                # როლი
+                # Assign the role if valid
                 role = message.guild.get_role(record.get(role_key))
                 if role:
-                    print(f"Assigning role: {role.name}")  # print check
                     await message.author.add_roles(role)
                     await message.add_reaction("✅")
+                    print(f"[INFO] Role {role.name} assigned to user: {message.author.name}")
 
-                # MongoDB-ში შეტყობინების რეგისტრაცია
+                # Register message in MongoDB
                 channel_collection.update_one(
                     {"guild_id": guild_id},
                     {"$addToSet": {
@@ -145,12 +149,13 @@ async def on_message(message):
                     }},
                     upsert=True
                 )
+                print(f"[INFO] Registered message: {content} in MongoDB")
+
             except Exception as e:
                 print(f"[ERROR - on_message]: {e}")
-            break  # პირველი შესაბამისი არხი რომ მოიძებნება, ვჩერდებით
+            break  # Stop further checks if one valid channel is found
 
     await bot.process_commands(message)
-
 @bot.event
 async def on_message_delete(message):
     if message.author.bot or not message.guild:
