@@ -10,7 +10,10 @@ from flask import Flask
 from threading import Thread
 from colorama import init, Fore
 from datetime import datetime, timedelta
-from pymongo import MongoClient 
+from pymongo import MongoClient
+
+from cxrameti import setup as setup_19
+from ocdaori import setup as setup_22
 
 load_dotenv()
 
@@ -54,7 +57,8 @@ bot = commands.Bot(command_prefix="p!", intents=intents, help_command=None)
 async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
     await bot.change_presence(status=discord.Status.invisible)
-    
+    await setup_19(bot)
+    await setup_22(bot)
     
     bot.loop.create_task(check_expired_roles())
     
