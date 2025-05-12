@@ -1,3 +1,9 @@
+from bot_instance import bot
+from discord import app_commands
+import discord
+import asyncio
+
+
 @bot.tree.command(name="regchannel_00_30", description="დაარეგისტრირე არხი 00:30 როლით")
 @app_commands.describe(channel="არხის ID", role_00_30="00:30 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
 @app_commands.checks.has_permissions(administrator=True)
