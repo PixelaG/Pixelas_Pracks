@@ -97,49 +97,35 @@ async def on_message(message):
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
-    if record:
-        # აქ ვამოწმებთ, რომ წერის არხი გახლავთ ერთ-ერთი შესაბამისი არხი
-        for time_key in ["22:00", "19:00", "00:30"]:
-            channel_id_key = f"channel_id_{time_key}"
-            role_key = f"role_{time_key}"
-            registered_messages_key = f"registered_messages_{time_key}"
+    if record and "channel_id_22_00" in record and message.channel.id == record["channel_id"]:
+        try:
+            banned_role_id = record["banned_role"]
+            banned_role = message.guild.get_role(banned_role_id)
 
-            if channel_id_key in record and message.channel.id == record[channel_id_key]:
-                try:
-                    banned_role_id = record.get("banned_role")
-                    banned_role = message.guild.get_role(banned_role_id)
+            if banned_role in message.author.roles:
+                await message.add_reaction("❌")
+                return
+            
+            pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+            if not re.match(pattern, message.content.strip()):
+                return
 
-                    # თუ მომხმარებელი ბლოკირებულია
-                    if banned_role in message.author.roles:
-                        await message.add_reaction("❌")
-                        return
+            await message.add_reaction("✅")
+            role = message.guild.get_role(record["role_22_00"])
+            if role:
+                await message.author.add_roles(role)
 
-                    # რეგულარული გამოხმაურება
-                    pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
-                    if not re.match(pattern, message.content.strip()):
-                        return
+            channel_collection.update_one(
+                {"guild_id": guild_id},
+                {"$addToSet": {"registered_messages_22:00": {
+                    "message_id": message.id,
+                    "content": message.content
+                }}},
+                upsert=True
+            )
 
-                    await message.add_reaction("✅")
-
-                    # შესაბამისი როლის მიღება და მიცემა
-                    role_id = record.get(role_key)
-                    if role_id:
-                        role = message.guild.get_role(role_id)
-                        if role:
-                            await message.author.add_roles(role)
-
-                    # MongoDB-ში შეტყობინების შესანახად
-                    channel_collection.update_one(
-                        {"guild_id": guild_id},
-                        {"$addToSet": {registered_messages_key: {
-                            "message_id": message.id,
-                            "content": message.content
-                        }}},
-                        upsert=True
-                    )
-
-                except Exception as e:
-                    print(f"[ERROR] {e}")
+        except Exception as e:
+            print(f"[ERROR] {e}")
 
     await bot.process_commands(message)
 
