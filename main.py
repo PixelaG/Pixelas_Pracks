@@ -123,7 +123,7 @@ async def on_message(message):
 
             channel_collection.update_one(
                 {"guild_id": guild_id},
-                {"$addToSet": {"registered_messages": {
+                {"$addToSet": {"registered_messages_22:00": {
                     "message_id": message.id,
                     "content": message.content
                 }}},
