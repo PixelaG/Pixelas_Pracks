@@ -5,6 +5,7 @@ from your_mongo_connection import channel_collection
 import discord
 import asyncio
 import re
+from main import bot
 
 
 @bot.event
