@@ -102,8 +102,18 @@ async def on_message(message):
             banned_role_id = record.get("banned_role")
             banned_role = message.guild.get_role(banned_role_id)
 
+            # შეამოწმეთ, რომ მომხმარებელს ბანის როლი აქვს და მხოლოდ რეგისტრაციის არხებში დაემატოს რეაქცია
             if banned_role and banned_role in message.author.roles:
-                await message.add_reaction("❌")
+                # რეგისტრაციის არხების სია
+                registration_channels = [
+                    record.get("channel_id_19_00"),
+                    record.get("channel_id_22_00"),
+                    record.get("channel_id_00_30")
+                ]
+                
+                # თუ შეტყობინება რეგისტრაციის არხზეა, დაემატოს რეაქცია
+                if message.channel.id in registration_channels:
+                    await message.add_reaction("❌")
             else:
                 pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
                 match = re.match(pattern, message.content.strip())
