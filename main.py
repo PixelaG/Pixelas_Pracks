@@ -3,9 +3,9 @@ import re
 import time
 import discord
 import asyncio
-import nineteen_00
-import _22_00
-import _00_30
+import cxrameti
+import ocdaori
+import nolocdaati
 from dotenv import load_dotenv
 from discord.ext import commands
 from discord import app_commands, Intents
