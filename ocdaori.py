@@ -60,7 +60,7 @@ async def regchannel_22_00(interaction: discord.Interaction, channel: discord.Te
     guild_id = interaction.guild.id
     try:
         # MongoDB განახლება
-        channel_collection.update_one(
+        result = channel_collection.update_one(
             {"guild_id": guild_id},
             {"$set": {
                 "channel_id": channel.id,
@@ -70,6 +70,11 @@ async def regchannel_22_00(interaction: discord.Interaction, channel: discord.Te
             }},
             upsert=True
         )
+
+        if result.modified_count > 0:
+            print(f"Successfully updated document for guild_id {guild_id}")
+        else:
+            print(f"No changes made to document for guild_id {guild_id}")
 
         await interaction.response.send_message(
             f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა MongoDB-ში!\n"
