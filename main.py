@@ -48,13 +48,6 @@ channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
 collection = db["teams"]
 
-
-intents = discord.Intents.default()
-intents.members = True  
-intents.guilds = True
-intents.message_content = True 
-intents.messages = True
-
 @bot.event
 async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
