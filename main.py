@@ -575,10 +575,23 @@ async def invite_prefix_command(ctx):
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error):
     print(f"Command Error: {error}")
-    if not interaction.response.is_done():
-        await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+    
+    if isinstance(error, discord.app_commands.CommandInvokeError):
+        original_error = error.original
+        print(f"Original Error: {original_error}")
+        
+        # აქ ამოგაცხრებით კონკრეტული შეცდომის შესახებ:
+        if isinstance(original_error, discord.NotFound):
+            await interaction.response.send_message("⚠️ არხი ან როლი ვერ მოიძებნა.", ephemeral=True)
+        elif isinstance(original_error, discord.Forbidden):
+            await interaction.response.send_message("⚠️ გთხოვთ, შეამოწმეთ უფლებები.", ephemeral=True)
+        else:
+            await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
     else:
-        await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+        if not interaction.response.is_done():
+            await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+        else:
+            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
         
 
 @bot.command()
