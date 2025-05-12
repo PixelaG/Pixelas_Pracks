@@ -3,8 +3,4 @@ colorama
 flask
 motor
 pymongo
-pytesseract
-Pillow
-aiohttp
-requests
 python-dotenv
