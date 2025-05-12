@@ -3,7 +3,7 @@ import re
 import time
 import discord
 import asyncio
-import _19_00
+import nineteen_00
 import _22_00
 import _00_30
 from dotenv import load_dotenv
