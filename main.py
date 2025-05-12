@@ -96,66 +96,47 @@ async def on_message(message):
 
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
+    if not record:
+        return
 
-    if record and "channel_id" in record and message.channel.id == record["channel_id"]:
-        try:
-            banned_role_id = record["banned_role"]
-            banned_role = message.guild.get_role(banned_role_id)
+    # ყველა დროის არხების და როლების შემოწმება
+    time_configs = [
+        ("channel_id_22_00", "role_22_00", "registered_messages_22:00"),
+        ("channel_id_19_00", "role_19_00", "registered_messages_19:00"),
+        ("channel_id_00_30", "role_00_30", "registered_messages_00:30")
+    ]
 
-            if banned_role in message.author.roles:
-                await message.add_reaction("❌")
-                return
-            
-            pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
-            if not re.match(pattern, message.content.strip()):
-                return
+    for channel_key, role_key, message_key in time_configs:
+        if channel_key in record and message.channel.id == record[channel_key]:
+            try:
+                # აკრძალული როლი
+                banned_role_id = record.get("banned_role")
+                if banned_role_id:
+                    banned_role = message.guild.get_role(banned_role_id)
+                    if banned_role and banned_role in message.author.roles:
+                        await message.add_reaction("❌")
+                        return
 
-            await message.add_reaction("✅")
-            
-            # 22:00 როლი
-            role_22_00 = message.guild.get_role(record.get("role_22_00"))
-            if role_22_00:
-                await message.author.add_roles(role_22_00)
-            
-            # 19:00 როლი
-            role_19_00 = message.guild.get_role(record.get("role_19_00"))
-            if role_19_00:
-                await message.author.add_roles(role_19_00)
+                # მიენიჭოს შესაბამისი როლი
+                role = message.guild.get_role(record.get(role_key))
+                if role:
+                    await message.author.add_roles(role)
+                    await message.add_reaction("✅")
 
-            # 00:30 როლი
-            role_00_30 = message.guild.get_role(record.get("role_00_30"))
-            if role_00_30:
-                await message.author.add_roles(role_00_30)
-
-            # 22:00 რეგისტრაცია
-            channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$addToSet": {"registered_messages_22:00": {
-                    "message_id": message.id,
-                    "content": message.content
-                }}}, upsert=True
-            )
-
-            # 19:00 რეგისტრაცია
-            channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$addToSet": {"registered_messages_19:00": {
-                    "message_id": message.id,
-                    "content": message.content
-                }}}, upsert=True
-            )
-
-            # 00:30 რეგისტრაცია
-            channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$addToSet": {"registered_messages_00_30": {
-                    "message_id": message.id,
-                    "content": message.content
-                }}}, upsert=True
-            )
-
-        except Exception as e:
-            print(f"[ERROR] {e}")
+                # MongoDB-ში შეტყობინების რეგისტრაცია
+                channel_collection.update_one(
+                    {"guild_id": guild_id},
+                    {"$addToSet": {
+                        message_key: {
+                            "message_id": message.id,
+                            "content": message.content
+                        }
+                    }},
+                    upsert=True
+                )
+            except Exception as e:
+                print(f"[ERROR] {e}")
+            break  # გაჩერდეს ციკლი რადგან შესაბამისი არხი უკვე მოიძებნა
 
     await bot.process_commands(message)
 
