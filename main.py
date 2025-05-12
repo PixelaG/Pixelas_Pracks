@@ -689,6 +689,29 @@ async def resultclear(ctx):
     await ctx.send("🗑️ ყველა შედეგი წაიშალა.")
 
 
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def rolerall(ctx, role: discord.Role):
+    member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
+    if not member:
+        return
+
+    removed_count = 0
+
+    for member in ctx.guild.members:
+        if role in member.roles:
+            try:
+                await member.remove_roles(role)
+                removed_count += 1
+            except discord.Forbidden:
+                pass  # არ აქვს უფლება
+            except discord.HTTPException:
+                pass  # შეცდომა Discord-ისგან
+
+    await ctx.send(f"✅ `{role.name}` როლი ჩამოერთვა {removed_count} წევრს.")
+    
+
+
 @bot.command(name="invite")
 async def invite_prefix_command(ctx):
     invite_url = "https://discord.com/oauth2/authorize?client_id=1367947407517810719"
