@@ -54,7 +54,7 @@ intents.members = True
 intents.guilds = True
 intents.message_content = True 
 intents.messages = True
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+bot = commands.Bot(command_prefix="p!", intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
@@ -712,42 +712,46 @@ async def rolerall(ctx, role: discord.Role):
     
 
 
-@bot.command(name="invite")
-async def invite_prefix_command(ctx):
-    invite_url = "https://discord.com/oauth2/authorize?client_id=1367947407517810719"
-    
-    embed = discord.Embed(
-        title="🤖 მიიწვიე ჩვენი ბოტი!",
-        description=f"[დააწკაპუნე აქ]({invite_url}) ბოტის მოსაწვევად შენს სერვერზე.",
-        color=discord.Color.blurple()
-    )
-    embed.set_footer(text="მადლობა, რომ იყენებ ჩვენს ბოტს!")
-
-    await ctx.send(embed=embed)
-
-
-
 @bot.command(name="help")
 async def custom_help(ctx):
     embed = discord.Embed(
-        title="📘 დახმარება",
-        description="აქ არის ყველა ხელმისაწვდომი ბრძანება:",
-        color=discord.Color.blue()
+        title="📘 დახმარების მენიუ",
+        description="შეარჩიე ქომანდები ქვემოთ მოცემული კატეგორიებიდან:",
+        color=discord.Color.purple()
     )
 
-    embed.add_field(name="📥 !createresult", value="გუნდის შედეგების დამატება", inline=False)
-    embed.add_field(name="📊 !getresult", value="შედეგების ნახვა ქულების მიხედვით", inline=False)
-    embed.add_field(name="🗑️ !resultclear", value="შედეგების წაშლა", inline=False)
-    embed.add_field(name="🎭 !rolerall @Role", value="მოცემული როლის ჩამორთმევა ყველასთვის", inline=False)
+    embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/1828/1828817.png")
 
-    embed.add_field(name="🧩 Slash ბრძანებები", value=
-        "`/regchannel_22_00`\n"
-        "`/reg_22_00`\n"
-        "`/createteamlist_22_00`\n"
-        "`/clearlist`\n"
-        "`/unlist`", inline=False
+    embed.add_field(
+        name="🎯 **შედეგების ქომანდები**",
+        value=(
+            "`!createresult` – შედეგების დამატება\n"
+            "`!getresult` – შედეგების ნახვა\n"
+            "`!resultclear` – შედეგების წაშლა"
+        ),
+        inline=False
     )
 
+    embed.add_field(
+        name="🎭 **როლების ქომანდები**",
+        value="`!rolerall @Role` – როლის ჩამორთმევა ყველასთვის",
+        inline=False
+    )
+
+    embed.add_field(
+        name="🧩 **Slash ბრძანებები**",
+        value=(
+            "`/regchannel_22_00` – რეგისტრაციის არხის დაყენება\n"
+            "`/reg_22_00` – მოთამაშის რეგისტრაცია\n"
+            "`/createteamlist_22_00` – გუნდების სიების შექმნა\n"
+            "`/clearlist` – სიების გასუფთავება\n"
+            "`/unlist` – რეგისტრაციის მოხსნა"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text="Bot by PixelasADV | გამოიყენე ბრძანებები გონივრულად 🤖")
+    
     await ctx.send(embed=embed)
 
 
