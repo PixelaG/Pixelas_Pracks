@@ -98,6 +98,7 @@ async def on_message(message):
     record = channel_collection.find_one({"guild_id": guild_id})
 
     if not record:
+        print(f"[ERROR] არხის ჩანაწერი ვერ მოიძებნა guild_id: {guild_id}")
         return
 
     try:
@@ -108,12 +109,11 @@ async def on_message(message):
             await message.add_reaction("❌")
             return
 
-        # ფორმატის მორგებული რეგულარული გამონათქვამი
+        # Regex-ი გთხოვთ ცალსახად შეამოწმოთ
         pattern = r"^(Team[^\s]+) / (PS) / <@!?([0-9]+)>$"
         match = re.match(pattern, message.content.strip())
 
         if match:
-            # თუ ფორმატი სწორია, მაგრამ სიტყვები მცირე ასოებით არის დაწერილი
             team_name = match.group(1).capitalize()  # ასოების შეცვლა
             ps = match.group(2)
             tag = match.group(3)
@@ -126,13 +126,15 @@ async def on_message(message):
                 messages_key = f"registered_messages_{slot.replace('_', ':')}"
 
                 if channel_key in record and message.channel.id == record[channel_key]:
+                    print(f"✅ არხი ემთხვევა: {message.channel.id} - {record[channel_key]}")
                     await message.add_reaction("✅")
 
                     role = message.guild.get_role(record.get(role_key))
                     if role:
                         await message.author.add_roles(role)
+                        print(f"✅ როლი დაემატა: {role.name} -> {message.author.display_name}")
 
-                    # MongoDB-ში განახლებული შეტყობინების ჩაწერა
+                    # MongoDB განახლება
                     channel_collection.update_one(
                         {"guild_id": guild_id},
                         {"$addToSet": {messages_key: {
@@ -141,11 +143,11 @@ async def on_message(message):
                         }}},
                         upsert=True
                     )
+                    print(f"✅ MongoDB განახლდა: {team_name} / {ps} / <@!{tag}>")
                     break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
 
         else:
-            # ფორმატი არასწორია, ❌ რეაქცია არ უნდა მივცეთ
-            pass
+            print(f"[ERROR] ფორმატი არასწორია: {message.content.strip()}")
 
     except Exception as e:
         print(f"[ERROR] {e}")
