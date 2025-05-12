@@ -1114,6 +1114,11 @@ async def custom_help(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.command()
+async def ping(ctx):
+    await ctx.send("pong")
+
+
 @bot.command(name="invite")
 async def invite_prefix_command(ctx):
     invite_url = "https://discord.com/oauth2/authorize?client_id=1367947407517810719"
