@@ -117,31 +117,24 @@ async def on_message(message):
                         role_key = f"role_{slot}"
                         messages_key = f"registered_messages_{slot.replace('_', ':')}"
 
-                        if channel_key in record:
-                            # მხოლოდ იმ არხებზე შევამოწმოთ, რომლებიც დარეგისტრირებულია
-                            if message.channel.id == record[channel_key]:
-                                await message.add_reaction("✅")
+                        # მხოლოდ შესაბამის არხზე არ უნდა მიემართოს რეაქცია
+                        if channel_key in record and message.channel.id == record[channel_key]:
+                            await message.add_reaction("✅")
 
-                                role = message.guild.get_role(record.get(role_key))
-                                if role:
-                                    await message.author.add_roles(role)
+                            role = message.guild.get_role(record.get(role_key))
+                            if role:
+                                await message.author.add_roles(role)
 
-                                # განახლება MongoDB-ში
-                                channel_collection.update_one(
-                                    {"guild_id": guild_id},
-                                    {"$addToSet": {messages_key: {
-                                        "message_id": message.id,
-                                        "content": message.content
-                                    }}} ,
-                                    upsert=True
-                                )
-                                break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
-                else:
-                    # შეცდომის შემთხვევაში (არასწორი ფორმატი)
-                    for slot in time_slots:
-                        if message.channel.id == record.get(f"channel_id_{slot}"):  # ყველა სლოტისთვის
-                            await message.add_reaction("❌")
-
+                            # განახლება MongoDB-ში
+                            channel_collection.update_one(
+                                {"guild_id": guild_id},
+                                {"$addToSet": {messages_key: {
+                                    "message_id": message.id,
+                                    "content": message.content
+                                }}}),
+                                upsert=True
+                            )
+                            break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
     except Exception as e:
         print(f"[ERROR] {e}")
 
