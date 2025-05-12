@@ -85,47 +85,7 @@ async def on_ready():
         print(Fore.GREEN + "✅ Slash commands synced successfully.")
     except Exception as e:
         print(Fore.RED + f"❌ Failed to sync commands: {e}")
-
-
-@bot.event
-async def on_message(message):
-    if message.author.bot or not message.guild:
-        return
-
-    guild_id = message.guild.id
-    record = channel_collection.find_one({"guild_id": guild_id})
-
-    if record and "channel_id" in record and message.channel.id == record["channel_id"]:
-        try:
-            banned_role_id = record["banned_role"]
-            banned_role = message.guild.get_role(banned_role_id)
-
-            if banned_role in message.author.roles:
-                await message.add_reaction("❌")
-                return
-            
-            pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
-            if not re.match(pattern, message.content.strip()):
-                return
-
-            await message.add_reaction("✅")
-            role = message.guild.get_role(record["role_22_00"])
-            if role:
-                await message.author.add_roles(role)
-
-            channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$addToSet": {"registered_messages_22:00": {
-                    "message_id": message.id,
-                    "content": message.content
-                }}},
-                upsert=True
-            )
-
-        except Exception as e:
-            print(f"[ERROR] {e}")
-
-    await bot.process_commands(message)
+        
 
 @bot.event
 async def on_message_edit(before, after):
