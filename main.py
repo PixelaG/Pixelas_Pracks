@@ -102,7 +102,8 @@ async def on_message(message):
     # სწორი შეტყობინების ფორმატის regex (დაშვებულია / ან | სეპარატორად)
     pattern = r"^[^/\|\n]+[ /|][^/\|\n]+[ /|]<@!?[0-9]+>$"
 
-    if not re.match(pattern, message.content.strip()):
+    content = message.content.strip()
+    if not re.match(pattern, content):
         return
 
     # ყველა დროის არხების და როლების შემოწმება
@@ -115,7 +116,7 @@ async def on_message(message):
     for channel_key, role_key, message_key in time_configs:
         if channel_key in record and message.channel.id == record[channel_key]:
             try:
-                # აკრძალული როლი
+                # აკრძალული როლის შემოწმება
                 banned_role_id = record.get("banned_role")
                 if banned_role_id:
                     banned_role = message.guild.get_role(banned_role_id)
@@ -123,11 +124,7 @@ async def on_message(message):
                         await message.add_reaction("❌")
                         return
 
-                # თუ შეტყობინება არ აკმაყოფილებს ფორმატს — გამოტოვეთ
-                if not re.match(pattern, message.content.strip()):
-                    return
-
-                # სწორი ფორმატის შემთხვევაში — მიენიჭოს შესაბამისი როლი
+                # როლი
                 role = message.guild.get_role(record.get(role_key))
                 if role:
                     await message.author.add_roles(role)
@@ -145,11 +142,10 @@ async def on_message(message):
                     upsert=True
                 )
             except Exception as e:
-                print(f"[ERROR] {e}")
-            break  # გაჩერდეს ციკლი რადგან შესაბამისი არხი უკვე მოიძებნა
+                print(f"[ERROR - on_message]: {e}")
+            break  # პირველი შესაბამისი არხი რომ მოიძებნება, ვჩერდებით
 
     await bot.process_commands(message)
-
 
 @bot.event
 async def on_message_delete(message):
