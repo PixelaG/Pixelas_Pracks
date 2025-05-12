@@ -596,6 +596,20 @@ async def custom_help(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.command(name="invite")
+async def invite_prefix_command(ctx):
+    invite_url = "https://discord.com/oauth2/authorize?client_id=1367947407517810719"
+    
+    embed = discord.Embed(
+        title="🤖 მიიწვიე ჩვენი ბოტი!",
+        description=f"[დააწკაპუნე აქ]({invite_url}) ბოტის მოსაწვევად შენს სერვერზე.",
+        color=discord.Color.blurple()
+    )
+    embed.set_footer(text="მადლობა, რომ იყენებ ჩვენს ბოტს!")
+
+    await ctx.send(embed=embed)
+
+
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error):
