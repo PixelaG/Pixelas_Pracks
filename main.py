@@ -133,7 +133,7 @@ async def on_message(message):
                 {"$addToSet": {"registered_messages_22:00": {
                     "message_id": message.id,
                     "content": message.content
-                }}}}, upsert=True
+                }}}, upsert=True
             )
 
             # 19:00 რეგისტრაცია
@@ -142,7 +142,7 @@ async def on_message(message):
                 {"$addToSet": {"registered_messages_19:00": {
                     "message_id": message.id,
                     "content": message.content
-                }}}}, upsert=True
+                }}}, upsert=True
             )
 
             # 00:30 რეგისტრაცია
@@ -151,7 +151,7 @@ async def on_message(message):
                 {"$addToSet": {"registered_messages_00_30": {
                     "message_id": message.id,
                     "content": message.content
-                }}}}, upsert=True
+                }}}, upsert=True
             )
 
         except Exception as e:
@@ -333,8 +333,8 @@ async def reg_19_00(interaction: discord.Interaction):
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
 
-        if record and "channel_id" in record:
-            channel = interaction.guild.get_channel(record["channel_id"])
+        if record and "channel_id_19_00" in record:
+            channel = interaction.guild.get_channel(record["channel_id_19_00"])
             if channel:
                 message = (
                     ">>> #  __**Registration is Open**__\n\n"
@@ -489,8 +489,8 @@ async def reg_22_00(interaction: discord.Interaction):
         guild_id = interaction.guild.id
         record = channel_collection.find_one({"guild_id": guild_id})
 
-        if record and "channel_id" in record:
-            channel = interaction.guild.get_channel(record["channel_id"])
+        if record and "channel_id_22_00" in record:
+            channel = interaction.guild.get_channel(record["channel_id_22_00"])
             if channel:
                 message = (
                     ">>> #  __**Registration is Open**__\n\n"
