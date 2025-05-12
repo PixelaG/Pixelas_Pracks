@@ -101,8 +101,8 @@ async def on_message(message):
 
     # სწორი შეტყობინების ფორმატის regex (დაშვებულია / ან | სეპარატორად)
     pattern = r"^[^/\|\n]+[ /|][^/\|\n]+[ /|]<@!?[0-9]+>$"
-
     content = message.content.strip()
+
     if not re.match(pattern, content):
         return
 
@@ -114,8 +114,11 @@ async def on_message(message):
     ]
 
     for channel_key, role_key, message_key in time_configs:
+        # მონიშნულ არხთან შედარება
         if channel_key in record and message.channel.id == record[channel_key]:
             try:
+                print(f"Checked channel: {message.channel.id}, expected: {record[channel_key]}")  # print check
+
                 # აკრძალული როლის შემოწმება
                 banned_role_id = record.get("banned_role")
                 if banned_role_id:
@@ -127,6 +130,7 @@ async def on_message(message):
                 # როლი
                 role = message.guild.get_role(record.get(role_key))
                 if role:
+                    print(f"Assigning role: {role.name}")  # print check
                     await message.author.add_roles(role)
                     await message.add_reaction("✅")
 
