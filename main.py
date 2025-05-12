@@ -111,17 +111,47 @@ async def on_message(message):
                 return
 
             await message.add_reaction("✅")
-            role = message.guild.get_role(record["role_22_00"])
-            if role:
-                await message.author.add_roles(role)
+            
+            # 22:00 როლი
+            role_22_00 = message.guild.get_role(record.get("role_22_00"))
+            if role_22_00:
+                await message.author.add_roles(role_22_00)
+            
+            # 19:00 როლი
+            role_19_00 = message.guild.get_role(record.get("role_19_00"))
+            if role_19_00:
+                await message.author.add_roles(role_19_00)
 
+            # 00:30 როლი
+            role_00_30 = message.guild.get_role(record.get("role_00_30"))
+            if role_00_30:
+                await message.author.add_roles(role_00_30)
+
+            # 22:00 რეგისტრაცია
             channel_collection.update_one(
                 {"guild_id": guild_id},
                 {"$addToSet": {"registered_messages_22:00": {
                     "message_id": message.id,
                     "content": message.content
-                }}},
-                upsert=True
+                }}}}, upsert=True
+            )
+
+            # 19:00 რეგისტრაცია
+            channel_collection.update_one(
+                {"guild_id": guild_id},
+                {"$addToSet": {"registered_messages_19:00": {
+                    "message_id": message.id,
+                    "content": message.content
+                }}}}, upsert=True
+            )
+
+            # 00:30 რეგისტრაცია
+            channel_collection.update_one(
+                {"guild_id": guild_id},
+                {"$addToSet": {"registered_messages_00_30": {
+                    "message_id": message.id,
+                    "content": message.content
+                }}}}, upsert=True
             )
 
         except Exception as e:
