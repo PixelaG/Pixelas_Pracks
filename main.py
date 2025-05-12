@@ -503,70 +503,59 @@ async def reg_22_00(interaction: discord.Interaction):
 
 @bot.tree.command(name="createteamlist_22_00", description="შექმნის Team List 22:00")
 @app_commands.checks.has_permissions(administrator=True)
-async def createteamlist_22(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
+async def createteamlist(interaction: discord.Interaction):
+    try:
+        await interaction.response.defer(ephemeral=True)
 
-    member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
-    if not member:
-        return
+        member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
+        if not member:
+            return
 
-    guild_id = interaction.guild.id
-    record = channel_collection.find_one({"guild_id": guild_id})
+        guild_id = interaction.guild.id
+        record = channel_collection.find_one({"guild_id": guild_id})
 
-    if not record or "registered_messages_22:00" not in record:
-        await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 22:00-ზე.")
-        return
+        if not record or "registered_messages_22:00" not in record:
+            await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 22:00-ზე.")
+            return
 
-    team_channel_id = record.get("teamlist_channel_22:00")
-    team_channel = interaction.guild.get_channel(team_channel_id)
-    if not team_channel:
-        await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
-        return
+        team_channel_id = record.get("teamlist_channel_22:00")
+        team_channel = interaction.guild.get_channel(team_channel_id)
+        if not team_channel:
+            await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
+            return
 
-    registered_entries = record.get("registered_messages_22:00", [])
-    valid_messages = []
+        entries = record.get("registered_messages_22:00", [])
+        messages = [entry["content"] for entry in entries]
 
-    reg_channel = interaction.guild.get_channel(record.get("channel_id_22_00"))
+        def to_fancy_number(n):
+            num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
+            return ''.join(num_map[d] for d in f"{n:02}")
 
-    for entry in registered_entries[:]:
-        try:
-            msg = await reg_channel.fetch_message(entry["message_id"])
-            valid_messages.append(msg.content)
-        except discord.NotFound:
-            channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$pull": {"registered_messages_22:00": {"message_id": entry["message_id"]}}}
-            )
-        except discord.HTTPException as e:
-            print(f"HTTP error occurred: {e}")
-        except discord.Forbidden as e:
-            print(f"Permission error occurred: {e}")
+        lines = [
+            f"> {to_fancy_number(i)}. {messages[25 - i]}" if 25 - i < len(messages)
+            else f"> {to_fancy_number(i)}."
+            for i in range(25, 0, -1)
+        ]
 
-    if not valid_messages:
-        await interaction.followup.send("⚠️ დარეგისტრირებული შეტყობინებები ვერ მოიძებნა.")
-        return
+        lines.reverse()
 
-    def to_fancy_number(n):
-        num_map = {'0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰', '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'}
-        return ''.join(num_map.get(d, d) for d in f"{n:02}")
+        message = (
+            "> \n"
+            ">                  __**TEAM LIST**__\n"
+            ">                        **22:00**\n"
+            + "\n".join(lines)
+        )
 
-    lines = [
-        f"> {to_fancy_number(i)}. {valid_messages[25 - i]}" if 25 - i < len(valid_messages)
-        else f"> {to_fancy_number(i)}."
-        for i in range(25, 0, -1)
-    ]
+        await team_channel.send(message)
+        await asyncio.sleep(2)
+        await interaction.followup.send("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
 
-    lines.reverse()
-
-    message = (
-        "> \n"
-        ">                  __**TEAM LIST**__\n"
-        ">                        **22:00**\n"
-        + "\n".join(lines)
-    )
-
-    await team_channel.send(message)
-    await interaction.followup.send("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
+    except Exception as e:
+        print(f"Error in createteamlist: {e}")
+        if not interaction.response.is_done():
+            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+        else:
+            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
 
 @bot.tree.command(name="clearlist_22_00", description="წაშალე Team List")
