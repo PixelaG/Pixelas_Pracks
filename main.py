@@ -141,7 +141,7 @@ async def on_message(message):
                                 {"$addToSet": {messages_key: {
                                     "message_id": message.id,
                                     "content": message.content
-                                }}}),
+                                }}},
                                 upsert=True
                             )
                             break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
