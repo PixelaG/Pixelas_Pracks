@@ -97,7 +97,7 @@ async def on_message(message):
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
-    if record and "channel_id_22_00" in record and message.channel.id == record["channel_id"]:
+    if record and "channel_id_22_00" in record and message.channel.id == record["channel_id_22_00"]:
         try:
             banned_role_id = record["banned_role"]
             banned_role = message.guild.get_role(banned_role_id)
