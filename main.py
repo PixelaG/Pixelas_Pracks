@@ -3,13 +3,10 @@ import re
 import time
 import discord
 import asyncio
-import pytesseract
-import aiohttp
-import requests
+import _19_00
+import _22_00
+import _00_30
 from dotenv import load_dotenv
-from io import BytesIO
-from PIL import Image
-from bson import ObjectId
 from discord.ext import commands
 from discord import app_commands
 from flask import Flask
