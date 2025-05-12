@@ -150,24 +150,34 @@ async def on_message_delete(message):
 
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
-
     if not record:
-        return  # აქ აკლდა ეს სტრიქონი, ამიტომ იყო შეცდომა
+        return
 
-    # ყველა დროის ვერსია (22:00, 19:00, 00:30)
-    for time_key in ["22:00", "19:00", "00:30"]:
-        channel_id_key = f"channel_id_{time_key}"
-        role_key = f"role_{time_key}"
-        registered_messages_key = f"registered_messages_{time_key}"
+    time_slots = [
+        ("22:00", "channel_id_22_00", "role_22_00", "registered_messages_22:00"),
+        ("19:00", "channel_id_19_00", "role_19_00", "registered_messages_19:00"),
+        ("00:30", "channel_id_00_30", "role_00_30", "registered_messages_00:30"),
+    ]
 
-        if channel_id_key in record and message.channel.id == record[channel_id_key]:
-            result = channel_collection.update_one(
-                {"guild_id": guild_id},
-                {"$pull": {registered_messages_key: {"message_id": message.id}}}
-            )
+    for label, channel_field, role_field, messages_field in time_slots:
+        if channel_field in record and message.channel.id == record[channel_field]:
+            registered_messages = record.get(messages_field, [])
+            updated_messages = [m for m in registered_messages if m["message_id"] != message.id]
 
-            if result.modified_count > 0:
-                print(f"[INFO] Removed deleted message from {registered_messages_key}")
+            if len(updated_messages) != len(registered_messages):
+                # ამოღება TeamList-დან
+                channel_collection.update_one(
+                    {"guild_id": guild_id},
+                    {"$set": {messages_field: updated_messages}}
+                )
+
+                # ჩამოართვას როლი
+                role = message.guild.get_role(record[role_field])
+                if role:
+                    member = message.guild.get_member(message.author.id)
+                    if member and role in member.roles:
+                        await member.remove_roles(role)
+                        print(f"Removed role {role.name} from {member.name} for {label} due to message deletion.")
         
 
 async def check_expired_roles():
