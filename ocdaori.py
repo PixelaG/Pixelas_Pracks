@@ -52,31 +52,33 @@ async def on_message(message):
 @app_commands.describe(channel="არხის ID", role_22_00="22:00 როლი", banned_role="Banned როლი", teamlist_channel="Team List არხი")
 @app_commands.checks.has_permissions(administrator=True)
 async def regchannel_22_00(interaction: discord.Interaction, channel: discord.TextChannel, role_22_00: discord.Role, banned_role: discord.Role, teamlist_channel: discord.TextChannel):
-
     member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
     if not member:
-       return
+        await interaction.response.send_message("⚠️ თქვენ არ გაქვთ საკმარისი უფლებები.", ephemeral=True)
+        return
     
     guild_id = interaction.guild.id
-
-    channel_collection.update_one(
-        {"guild_id": guild_id},
-        {"$set": {
-            "channel_id": channel.id,
-            "role_22_00": role_22_00.id,
-            "banned_role": banned_role.id,
-            "teamlist_channel_22:00": teamlist_channel.id
-        }},
-        upsert=True
-    )
-
     try:
-        await interaction.response.send_message(
-            f"✅ არხი {channel.name} და როლები წარმატებით დარეგისტრირდა MongoDB-ში!\n"
-            f"📄 Team List Channel: {teamlist_channel.name}"
+        # MongoDB განახლება
+        channel_collection.update_one(
+            {"guild_id": guild_id},
+            {"$set": {
+                "channel_id": channel.id,
+                "role_22_00": role_22_00.id,
+                "banned_role": banned_role.id,
+                "teamlist_channel_22:00": teamlist_channel.id
+            }},
+            upsert=True
         )
+
+        await interaction.response.send_message(
+            f"✅ არხი `{channel.name}` და როლები წარმატებით დარეგისტრირდა MongoDB-ში!\n"
+            f"📄 Team List Channel: `{teamlist_channel.name}`"
+        )
+
     except Exception as e:
-        print(f"Error sending response: {e}")
+        print(f"[ERROR] Error during registration: {e}")
+        await interaction.response.send_message(f"⚠️ რეგისტრაციისას მოხდა შეცდომა: {e}", ephemeral=True)
 
 
 @bot.tree.command(name="reg_22_00", description="გამოაგზავნე რეგისტრაციის შეტყობინება")
