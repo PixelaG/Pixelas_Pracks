@@ -117,26 +117,30 @@ async def on_message(message):
                         role_key = f"role_{slot}"
                         messages_key = f"registered_messages_{slot.replace('_', ':')}"
 
-                        if channel_key in record and message.channel.id == record[channel_key]:
-                            await message.add_reaction("✅")
+                        if channel_key in record:
+                            # მხოლოდ იმ არხებზე შევამოწმოთ, რომლებიც დარეგისტრირებულია
+                            if message.channel.id == record[channel_key]:
+                                await message.add_reaction("✅")
 
-                            role = message.guild.get_role(record.get(role_key))
-                            if role:
-                                await message.author.add_roles(role)
+                                role = message.guild.get_role(record.get(role_key))
+                                if role:
+                                    await message.author.add_roles(role)
 
-                            # განახლება MongoDB-ში
-                            channel_collection.update_one(
-                                {"guild_id": guild_id},
-                                {"$addToSet": {messages_key: {
-                                    "message_id": message.id,
-                                    "content": message.content
-                                }}},
-                                upsert=True
-                            )
-                            break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
+                                # განახლება MongoDB-ში
+                                channel_collection.update_one(
+                                    {"guild_id": guild_id},
+                                    {"$addToSet": {messages_key: {
+                                        "message_id": message.id,
+                                        "content": message.content
+                                    }}} ,
+                                    upsert=True
+                                )
+                                break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
                 else:
                     # შეცდომის შემთხვევაში (არასწორი ფორმატი)
-                    await message.add_reaction("❌")
+                    for slot in time_slots:
+                        if message.channel.id == record.get(f"channel_id_{slot}"):  # ყველა სლოტისთვის
+                            await message.add_reaction("❌")
 
     except Exception as e:
         print(f"[ERROR] {e}")
@@ -465,15 +469,11 @@ async def createteamlist(interaction: discord.Interaction):
         )
 
         await team_channel.send(message)
-        await asyncio.sleep(2)
-        await interaction.followup.send("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
+        await interaction.response.send_message("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
 
     except Exception as e:
         print(f"Error in createteamlist: {e}")
-        if not interaction.response.is_done():
-            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
-        else:
-            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+        await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
 
 @bot.tree.command(name="clearlist_19_00", description="წაშალე Team List 19:00")
@@ -579,8 +579,7 @@ async def reg_22_00(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(administrator=True)
 async def createteamlist(interaction: discord.Interaction):
     try:
-        await interaction.response.defer(ephemeral=True)
-
+        # await interaction.response.defer(ephemeral=True) - ამოიღეთ defer, რადგან ეს შეიძლება გამოიწვიოს შეცდომა
         member = await check_user_permissions(interaction, 1368589143546003587, 1005186618031869952)
         if not member:
             return
@@ -589,13 +588,13 @@ async def createteamlist(interaction: discord.Interaction):
         record = channel_collection.find_one({"guild_id": guild_id})
 
         if not record or "registered_messages_22:00" not in record:
-            await interaction.followup.send("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 22:00-ზე.")
+            await interaction.response.send_message("⚠️ ჯერ არავინ არ არის დარეგისტრირებული 22:00-ზე.", ephemeral=True)
             return
 
         team_channel_id = record.get("teamlist_channel_22:00")
         team_channel = interaction.guild.get_channel(team_channel_id)
         if not team_channel:
-            await interaction.followup.send("⚠️ Team List არხი ვერ მოიძებნა.")
+            await interaction.response.send_message("⚠️ Team List არხი ვერ მოიძებნა.", ephemeral=True)
             return
 
         entries = record.get("registered_messages_22:00", [])
@@ -621,15 +620,11 @@ async def createteamlist(interaction: discord.Interaction):
         )
 
         await team_channel.send(message)
-        await asyncio.sleep(2)
-        await interaction.followup.send("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
+        await interaction.response.send_message("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
 
     except Exception as e:
         print(f"Error in createteamlist: {e}")
-        if not interaction.response.is_done():
-            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
-        else:
-            await interaction.followup.send("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
+        await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
 
 @bot.tree.command(name="clearlist_22_00", description="წაშალე Team List")
@@ -789,8 +784,12 @@ async def createteamlist_00_30(interaction: discord.Interaction):
         + "\n".join(lines)
     )
 
-    await team_channel.send(message)
-    await interaction.followup.send("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
+        await team_channel.send(message)
+        await interaction.response.send_message("✅ Team List წარმატებით შეიქმნა!", ephemeral=True)
+
+    except Exception as e:
+        print(f"Error in createteamlist: {e}")
+        await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
 
 @bot.tree.command(name="clearlist_00_30", description="წაშალე Team List 00:30")
 @app_commands.checks.has_permissions(administrator=True)
