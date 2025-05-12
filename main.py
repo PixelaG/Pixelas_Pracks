@@ -617,8 +617,7 @@ async def invite_prefix_command(ctx):
 
 
 @bot.tree.error
-async def on_app_command_error(interaction: discord.Interaction, error):
-    print(f"Command Error: {error}")
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if not interaction.response.is_done():
         await interaction.response.send_message("⚠️ ქომანდის შესრულებისას მოხდა შეცდომა.", ephemeral=True)
     else:
