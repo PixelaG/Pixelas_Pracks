@@ -727,7 +727,7 @@ async def invite_prefix_command(ctx):
 
 
 
-@bot.command()
+@bot.command(name="help")
 async def help(ctx):
     embed = discord.Embed(
         title="📘 დახმარება",
