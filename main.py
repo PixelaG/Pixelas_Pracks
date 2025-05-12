@@ -8,12 +8,14 @@ import _22_00
 import _00_30
 from dotenv import load_dotenv
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, Intents
 from flask import Flask
 from threading import Thread
 from colorama import init, Fore
 from datetime import datetime, timedelta
-from pymongo import MongoClient 
+from pymongo import MongoClient
+from bot_instance import bot
+
 
 load_dotenv()
 
@@ -51,6 +53,8 @@ intents.members = True
 intents.guilds = True
 intents.message_content = True 
 intents.messages = True
+
+intents = Intents.all()
 bot = commands.Bot(command_prefix="p!", intents=intents, help_command=None)
 
 @bot.event
