@@ -54,7 +54,7 @@ intents.members = True
 intents.guilds = True
 intents.message_content = True 
 intents.messages = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
@@ -728,40 +728,25 @@ async def invite_prefix_command(ctx):
 
 
 @bot.command(name="help")
-async def help(ctx):
+async def custom_help(ctx):
     embed = discord.Embed(
         title="📘 დახმარება",
-        description="ქვემოთ მოცემულია ბოტის ყველა ძირითადი ბრძანება:",
+        description="აქ არის ყველა ხელმისაწვდომი ბრძანება:",
         color=discord.Color.blue()
     )
 
-    # Text commands
-    embed.add_field(
-        name="🧾 ტექსტური ბრძანებები",
-        value=(
-            "`!createresult <team> <place> <kills>` — შედეგების დამატება\n"
-            "`!getresult` — ქულების მიხედვით დალაგებული სია\n"
-            "`!resultclear` — ყველა შედეგის წაშლა\n"
-            "`!rolerall @Role` — მითითებული როლის წართმევა ყველასთვის\n"
-            "`!help` — დახმარების სია"
-        ),
-        inline=False
-    )
+    embed.add_field(name="📥 !createresult", value="გუნდის შედეგების დამატება", inline=False)
+    embed.add_field(name="📊 !getresult", value="შედეგების ნახვა ქულების მიხედვით", inline=False)
+    embed.add_field(name="🗑️ !resultclear", value="შედეგების წაშლა", inline=False)
+    embed.add_field(name="🎭 !rolerall @Role", value="მოცემული როლის ჩამორთმევა ყველასთვის", inline=False)
 
-    # Slash commands
-    embed.add_field(
-        name="🧩 Slash ბრძანებები",
-        value=(
-            "`/regchannel_22_00` — რეგისტრაციის არხის დასაწერად\n"
-            "`/reg_22_00` — მოთამაშის რეგისტრაცია\n"
-            "`/createteamlist_22_00` — გუნდების სიის შექმნა\n"
-            "`/clearlist` — რეგისტრაციის სიის გასუფთავება\n"
-            "`/unlist` — კონკრეტული წევრის ამოშლა სიიდან"
-        ),
-        inline=False
+    embed.add_field(name="🧩 Slash ბრძანებები", value=
+        "`/regchannel_22_00`\n"
+        "`/reg_22_00`\n"
+        "`/createteamlist_22_00`\n"
+        "`/clearlist`\n"
+        "`/unlist`", inline=False
     )
-
-    embed.set_footer(text="Pixelas • დაგეგმარების და რეგისტრაციის სისტემა")
 
     await ctx.send(embed=embed)
 
