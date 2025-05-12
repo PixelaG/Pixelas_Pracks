@@ -99,6 +99,9 @@ async def on_message(message):
     if not record:
         return
 
+    # სწორი შეტყობინების ფორმატის regex (დაშვებულია / ან | სეპარატორად)
+    pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
+
     # ყველა დროის არხების და როლების შემოწმება
     time_configs = [
         ("channel_id_22_00", "role_22_00", "registered_messages_22:00"),
@@ -117,7 +120,11 @@ async def on_message(message):
                         await message.add_reaction("❌")
                         return
 
-                # მიენიჭოს შესაბამისი როლი
+                # თუ შეტყობინება არ აკმაყოფილებს ფორმატს — გამოტოვეთ
+                if not re.match(pattern, message.content.strip()):
+                    return
+
+                # სწორი ფორმატის შემთხვევაში — მიენიჭოს შესაბამისი როლი
                 role = message.guild.get_role(record.get(role_key))
                 if role:
                     await message.author.add_roles(role)
@@ -139,28 +146,6 @@ async def on_message(message):
             break  # გაჩერდეს ციკლი რადგან შესაბამისი არხი უკვე მოიძებნა
 
     await bot.process_commands(message)
-
-@bot.event
-async def on_message_edit(before, after):
-    if after.author.bot or not after.guild:
-        return
-
-    guild_id = after.guild.id
-    record = channel_collection.find_one({"guild_id": guild_id})
-    if not record or "channel_id" not in record or after.channel.id != record["channel_id"]:
-        return
-
-    pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
-    if not re.match(pattern, after.content.strip()):
-        return
-
-    updated = channel_collection.update_one(
-        {"guild_id": guild_id, "registered_messages.message_id": after.id},
-        {"$set": {"registered_messages.$.content": after.content}}
-    )
-
-    if updated.modified_count:
-        print(f"[INFO] Updated message {after.id} with new content.")
         
 
 async def check_expired_roles():
