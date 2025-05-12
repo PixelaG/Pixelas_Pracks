@@ -109,7 +109,6 @@ async def on_message(message):
         print(f"[INFO] Message format is incorrect: {content}")
         return
 
-    # ყველა დროის არხების და როლების შემოწმება
     time_configs = [
         ("channel_id_22_00", "role_22_00", "registered_messages_22:00"),
         ("channel_id_19_00", "role_19_00", "registered_messages_19:00"),
@@ -117,7 +116,6 @@ async def on_message(message):
     ]
 
     for channel_key, role_key, message_key in time_configs:
-        # Check if we have the right channel
         if channel_key in record and message.channel.id == record[channel_key]:
             print(f"[INFO] Message in correct channel: {message.channel.id}")
 
@@ -131,14 +129,21 @@ async def on_message(message):
                         print(f"[INFO] User has banned role: {banned_role.name}")
                         return
 
-                # Assign the role if valid
-                role = message.guild.get_role(record.get(role_key))
+                # Get the role ID from the record
+                role_id = record.get(role_key)
+                if not role_id:
+                    print(f"[INFO] No role ID found for {role_key}")
+                    return
+
+                role = message.guild.get_role(role_id)
                 if role:
                     await message.author.add_roles(role)
                     await message.add_reaction("✅")
                     print(f"[INFO] Role {role.name} assigned to user: {message.author.name}")
+                else:
+                    print(f"[INFO] Role with ID {role_id} not found in guild.")
 
-                # Register message in MongoDB
+                # Save the message in MongoDB
                 channel_collection.update_one(
                     {"guild_id": guild_id},
                     {"$addToSet": {
@@ -156,6 +161,8 @@ async def on_message(message):
             break  # Stop further checks if one valid channel is found
 
     await bot.process_commands(message)
+
+
 @bot.event
 async def on_message_delete(message):
     if message.author.bot or not message.guild:
