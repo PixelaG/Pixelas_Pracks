@@ -94,7 +94,7 @@ async def on_message(message):
     if message.author.bot or not message.guild:
         return
 
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.5)  # დროებითი დაყოვნება
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
@@ -114,7 +114,9 @@ async def on_message(message):
                 
                 # თუ შეტყობინება რეგისტრაციის არხზეა, დაემატოს რეაქცია
                 if message.channel.id in registration_channels:
-                    await message.add_reaction("❌")
+                    # დავაყოვნოთ 15 წამი რეაქციის დამატებამდე
+                    await asyncio.sleep(15)
+                    await message.add_reaction("❌")  # ემატება ❌ რეაქცია
             else:
                 pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
                 match = re.match(pattern, message.content.strip())
@@ -130,7 +132,9 @@ async def on_message(message):
 
                         # მხოლოდ შესაბამის არხზე არ უნდა მიემართოს რეაქცია
                         if channel_key in record and message.channel.id == record[channel_key]:
-                            await message.add_reaction("✅")
+                            # დავაყოვნოთ 15 წამი რეაქციების დამატებამდე
+                            await asyncio.sleep(15)
+                            await message.add_reaction("✅")  # ემატება ✅ რეაქცია
 
                             role = message.guild.get_role(record.get(role_key))
                             if role:
@@ -142,7 +146,7 @@ async def on_message(message):
                                 {"$addToSet": {messages_key: {
                                     "message_id": message.id,
                                     "content": message.content
-                                }}},
+                                }}} ,
                                 upsert=True
                             )
                             break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
@@ -151,7 +155,6 @@ async def on_message(message):
 
     # prefix ქომანდების მუშაობა
     await bot.process_commands(message)
-            # რედაქტირება (თუ ფორმატი შეცვლილია)
 
 @bot.event
 async def on_message_edit(before, after):
