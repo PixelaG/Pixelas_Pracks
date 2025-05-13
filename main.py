@@ -120,7 +120,7 @@ async def on_message(message):
 
                 if match:
                     # დროების სია
-                    time_slots = ["19_00", "22_00", "00_30"]
+                    time_slots = ["19_00", "22_00", "00_30"]  # time_slots მხოლოდ აქ უნდა იყოს
 
                     for slot in time_slots:
                         channel_key = f"channel_id_{slot}"
@@ -150,7 +150,6 @@ async def on_message(message):
 
     # prefix ქომანდების მუშაობა
     await bot.process_commands(message)
-
             # რედაქტირება (თუ ფორმატი შეცვლილია)
 
 @bot.event
@@ -1089,49 +1088,59 @@ async def rolerall(ctx, role: discord.Role):
 @bot.command(name="help")
 async def custom_help(ctx):
     embed = discord.Embed(
-        title="📘 დახმარების მენიუ",
-        description="შეარჩიე ქომანდები ქვემოთ მოცემული კატეგორიებიდან:",
-        color=discord.Color.purple()
+        title="📘 **დახმარების მენიუ**",
+        description=(
+            "შეარჩიე ქომანდები ქვემოთ მოცემული კატეგორიებიდან:\n\n"
+            "📝 თუ გჭირდება მეტი ინფორმაცია, მიმართე კონკრეტულ ბრძანებას!"
+        ),
+        color=discord.Color.blue()
     )
 
     embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/1828/1828817.png")
+    embed.set_footer(text="Bot by Pixelas Pracks | გამოიყენე ბრძანებები გონივრულად 🤖")
 
     embed.add_field(
         name="🎯 **შედეგების ქომანდები**",
         value=(
-            "`!createresult` – შედეგების დამატება\n"
-            "`!getresult` – შედეგების ნახვა\n"
-            "`!resultclear` – შედეგების წაშლა"
+            "🔹 `!createresult` – შედეგების დამატება\n"
+            "🔹 `!getresult` – შედეგების ნახვა\n"
+            "🔹 `!resultclear` – შედეგების წაშლა"
         ),
         inline=False
     )
 
     embed.add_field(
         name="🎭 **როლების ქომანდები**",
-        value="`!rolerall @Role` – როლის ჩამორთმევა ყველასთვის",
+        value="🔹 `!rolerall @Role` – როლის ჩამორთმევა ყველასთვის",
         inline=False
     )
 
     embed.add_field(
         name="🧩 **Slash ბრძანებები**",
         value=(
-            "`/regchannel_22_00` – რეგისტრაციის დაყენება\n"
-            "`/reg_22_00` – რეგისტრაციის გახსნა\n"
-            "`/createteamlist_22_00` – Team List - ის შექმნა\n"
-            "`/clearlist` – Team List - ის გასუფთავება\n"
-            "`/unlist` – Team List - იდან ამოსმა"
+            "**🕐 რეგისტრაციის დაყენება**:\n"
+            "🔹 `/regchannel_00_30` – რეგისტრაციის დაყენება 00:30-ზე\n"
+            "🔹 `/regchannel_19_00` – რეგისტრაციის დაყენება 19:00-ზე\n"
+            "🔹 `/regchannel_22_00` – რეგისტრაციის დაყენება 22:00-ზე\n\n"
+            "**⏳ რეგისტრაციის გახსნის ბრძანებები**:\n"
+            "🔹 `/reg_00_30` – რეგისტრაციის გახსნა 00:30-ზე\n"
+            "🔹 `/reg_19_00` – რეგისტრაციის გახსნა 19:00-ზე\n"
+            "🔹 `/reg_22_00` – რეგისტრაციის გახსნა 22:00-ზე\n\n"
+            "**🏆 Team List შექმნა**:\n"
+            "🔹 `/createteamlist_00_30` – Team List - ის შექმნა 00:30-ზე\n"
+            "🔹 `/createteamlist_19_00` – Team List - ის შექმნა 19:00-ზე\n"
+            "🔹 `/createteamlist_22_00` – Team List - ის შექმნა 22:00-ზე\n\n"
+            "**🧹 Team List გასუფთავება**:\n"
+            "🔹 `/clearlist_00_30` – Team List - ის გასუფთავება 00:30-ზე\n"
+            "🔹 `/clearlist_19_00` – Team List - ის გასუფთავება 19:00-ზე\n"
+            "🔹 `/clearlist_22_00` – Team List - ის გასუფთავება 22:00-ზე\n\n"
+            "**🚫 Team List - იდან ამოსმა**:\n"
+            "🔹 `/unlist` – Team List - იდან ამოსმა"
         ),
         inline=False
     )
 
-    embed.set_footer(text="Bot by Pixelas Pracks | გამოიყენე ბრძანებები გონივრულად 🤖")
-    
     await ctx.send(embed=embed)
-
-
-@bot.command()
-async def ping(ctx):
-    await ctx.send("pong")
 
 
 @bot.command(name="invite")
