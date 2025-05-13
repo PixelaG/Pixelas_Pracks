@@ -94,6 +94,7 @@ async def on_message(message):
     if message.author.bot or not message.guild:
         return
 
+    await asyncio.sleep(0.5)
     guild_id = message.guild.id
     record = channel_collection.find_one({"guild_id": guild_id})
 
@@ -280,7 +281,7 @@ async def check_expired_roles():
         except Exception as e:
             print(f"შეცდომა check_expired_roles-ში: {e}")
         
-        await asyncio.sleep(60)
+        await asyncio.sleep(300)
 
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
