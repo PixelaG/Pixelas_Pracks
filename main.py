@@ -1019,38 +1019,39 @@ async def createresult(ctx, *args):
 # !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
 async def getresult(ctx):
-    member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
-    if not member:
+    guild_id = ctx.guild.id
+    data = result_collection.find_one({"guild_id": guild_id})
+    
+    if not data or "results" not in data or not data["results"]:
+        await ctx.send("📭 შედეგები ჯერ არ არის დამატებული.")
         return
 
-    pipeline = [
-        {
-            "$group": {
-                "_id": "$team_name",
-                "total_points": {"$sum": "$points"},
-                "total_eliminations": {"$sum": "$eliminations"}
-            }
-        },
-        {
-            "$sort": {"total_points": -1}
-        }
-    ]
+    # ქულების დალაგება კლებადობით და მაქსიმუმ 12 გუნდის ჩვენება
+    sorted_results = sorted(data["results"], key=lambda x: x["points"], reverse=True)[:12]
 
-    grouped_results = list(collection.aggregate(pipeline))
+    # გამარჯვებული გუნდის სახელი
+    winner_team_name = sorted_results[0]["team"]
 
-    if not grouped_results:
-        await ctx.send("📭 შედეგები არ არის.")
-        return
+    # მილოცვის ტექსტი
+    congrats_text = (
+        f"*__🏆 {winner_team_name}-ს ვულოცავთ დამსახურებულ გამარჯვებას!__*\n"
+        "*__დანარჩენ კლანებს გისურვებთ წარმატებას. 💪\n\n"
+        "დაგვიტოვეთ პატარა შეფასება 💬__*\n"
+        "|| @everyone ||\n\n"
+    )
 
-    msg = "**📊 საბოლოო შედეგები (ქულების მიხედვით დალაგებული):**\n"
+    # ქულების ლამაზი სია
+    score_lines = []
+    for i, result in enumerate(sorted_results, start=1):
+        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "🔹"
+        score_lines.append(f"{medal} **{i}. {result['team']}** — `{result['points']} ქულა`")
 
-    for idx, r in enumerate(grouped_results, start=1):
-        team = r['_id']
-        total_points = r['total_points']
-        kills = r['total_eliminations']
-        msg += f"**{idx} ადგილი** – {team}: {kills} მკვლელობა, {total_points} ქულა\n"
+    scores_text = "\n".join(score_lines)
 
-    await ctx.send(msg)
+    # საბოლოო მესიჯი
+    final_message = f"{congrats_text}{scores_text}"
+
+    await ctx.send(final_message)
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
