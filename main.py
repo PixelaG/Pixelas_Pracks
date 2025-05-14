@@ -259,7 +259,7 @@ async def on_guild_join(guild):
         
 
 async def check_expired_roles():
-    """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
+    await bot.wait_until_ready()  # დაელოდე რომ ბოტი მთლიანად ჩაერთოს
     while True:
         try:
             now = datetime.utcnow()
@@ -281,7 +281,7 @@ async def check_expired_roles():
                         log_channel = guild.get_channel(entry["log_channel_id"])
                         if log_channel:
                             expired_embed = discord.Embed(
-                                title="⏰ დაკარგა წვდომა ",
+                                title="⏰ დაკარგა წვდომა",
                                 description=f"{member.mention}-ს აღარ აქვს {role.name} როლი",
                                 color=discord.Color.red()
                             )
@@ -305,7 +305,7 @@ async def check_expired_roles():
                                 )
 
                         try:
-                            await guild.leave()  # ბოტი ტოვებს სერვერს
+                            await guild.leave()  # ბოტი ტოვებს იმ სერვერს
                         except Exception as e:
                             print(f"ბოტის გამოსვლის შეცდომა: {e}")
 
@@ -320,6 +320,7 @@ async def check_expired_roles():
             print(f"შეცდომა check_expired_roles-ში: {e}")
 
         await asyncio.sleep(300)  # 5 წუთში ერთხელ ამოწმებს
+
 
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
