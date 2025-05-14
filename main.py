@@ -1020,39 +1020,62 @@ async def createresult(ctx, *args):
 # !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
 async def getresult(ctx):
-    guild_id = ctx.guild.id
-    data = result_collection.find_one({"guild_id": guild_id})
-    
-    if not data or "results" not in data or not data["results"]:
-        await ctx.send("📭 შედეგები ჯერ არ არის დამატებული.")
+    member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
+    if not member:
         return
 
-    # ქულების დალაგება კლებადობით და მაქსიმუმ 12 გუნდის ჩვენება
-    sorted_results = sorted(data["results"], key=lambda x: x["points"], reverse=True)[:12]
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$team_name",
+                "total_points": {"$sum": "$points"},
+                "total_eliminations": {"$sum": "$eliminations"}
+            }
+        },
+        {
+            "$sort": {"total_points": -1}
+        }
+    ]
 
-    # გამარჯვებული გუნდის სახელი
-    winner_team_name = sorted_results[0]["team"]
+    grouped_results = list(collection.aggregate(pipeline))
 
-    # მილოცვის ტექსტი
-    congrats_text = (
-        f"*__🏆 {winner_team_name}-ს ვულოცავთ დამსახურებულ გამარჯვებას!__*\n"
-        "*__დანარჩენ კლანებს გისურვებთ წარმატებას. 💪\n\n"
-        "დაგვიტოვეთ პატარა შეფასება 💬__*\n"
-        "|| @everyone ||\n\n"
+    if not grouped_results:
+        await ctx.send("📭 შედეგები არ არის.")
+        return
+
+    # გამარჯვებული გუნდი
+    winner = grouped_results[0]['_id']
+
+    # Embed შექმნა
+    embed = discord.Embed(
+        title="📢 შედეგები!",
+        description=(
+            f"__**{winner}**__ -ს ვულოცავთ დამსახურებულ გამარჯვებას! 🏆\n\n"
+            f"დანარჩენ კლანებს გისურვებთ წარმატებას. 💪\n"
+            f"დაგვიტოვეთ პატარა შეფასება 💬\n\n"
+            f"**📊 ტოპ 12 გუნდის შედეგები:**"
+        ),
+        color=discord.Color.gold()
     )
 
-    # ქულების ლამაზი სია
-    score_lines = []
-    for i, result in enumerate(sorted_results, start=1):
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "🔹"
-        score_lines.append(f"{medal} **{i}. {result['team']}** — `{result['points']} ქულა`")
+    medals = ["🥇", "🥈", "🥉"]
 
-    scores_text = "\n".join(score_lines)
+    for idx, r in enumerate(grouped_results[:12], start=1):  # მხოლოდ 12 გუნდი
+        team = r['_id']
+        total_points = r['total_points']
+        kills = r['total_eliminations']
+        place = medals[idx - 1] if idx <= 3 else f"#{idx}"
+        embed.add_field(
+            name=f"{place} - {team}",
+            value=f"🔫 **მკვლელობები**: {kills} | 🏅 **ქულები**: {total_points}",
+            inline=False
+        )
 
-    # საბოლოო მესიჯი
-    final_message = f"{congrats_text}{scores_text}"
+    embed.set_footer(text="Created by your bot 💻")
 
-    await ctx.send(final_message)
+    # რეაქციის მსგავსი გამოჩენა
+    await ctx.send("|| @everyone ||")
+    await ctx.send(embed=embed)
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
