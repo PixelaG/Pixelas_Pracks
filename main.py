@@ -259,7 +259,10 @@ async def on_guild_join(guild):
         
 
 async def check_expired_roles():
-    await bot.wait_until_ready()  # დაელოდე რომ ბოტი მთლიანად ჩაერთოს
+    """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
+    main_guild_id = 1005186618031869952  # შენი მთავარი სერვერის ID
+    log_channel_id = 1372338023987150858  # მთავარი სერვერის ლოგ არხი
+
     while True:
         try:
             now = datetime.utcnow()
@@ -293,9 +296,6 @@ async def check_expired_roles():
                             await log_channel.send(embed=expired_embed)
 
                         # გლობალური ლოგი მთავარ სერვერზე
-                        main_guild_id = 1005186618031869952
-                        log_channel_id = 1372338023987150858
-
                         main_guild = bot.get_guild(main_guild_id)
                         if main_guild:
                             main_log_channel = main_guild.get_channel(log_channel_id)
@@ -304,10 +304,12 @@ async def check_expired_roles():
                                     f"⚠️ ვადა გაუვიდა მომხმარებელს {member.mention} სერვერზე **{guild.name}**."
                                 )
 
-                        try:
-                            await guild.leave()  # ბოტი ტოვებს იმ სერვერს
-                        except Exception as e:
-                            print(f"ბოტის გამოსვლის შეცდომა: {e}")
+                        # ბოტის გამოსვლა იმ სერვერიდან, რომელიც არაა მთავარი სერვერი
+                        if guild.id != main_guild_id:
+                            try:
+                                await guild.leave()
+                            except Exception as e:
+                                print(f"ბოტის გამოსვლის შეცდომა: {e}")
 
                     access_entries.delete_one({"_id": entry["_id"]})
 
