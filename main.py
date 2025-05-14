@@ -103,58 +103,54 @@ async def on_message(message):
             banned_role_id = record.get("banned_role")
             banned_role = message.guild.get_role(banned_role_id)
 
-            # შეამოწმეთ, რომ მომხმარებელს ბანის როლი აქვს და მხოლოდ რეგისტრაციის არხებში დაემატოს რეაქცია
+            # რეაქციის ემოჯები
+            deny_emoji = record.get("custom_react_emoji_deny", "❌")
+            allow_emoji = record.get("custom_react_emoji_allow", "✅")
+
+            # რეგისტრაციის არხების სია
+            registration_channels = [
+                record.get("channel_id_19_00"),
+                record.get("channel_id_22_00"),
+                record.get("channel_id_00_30")
+            ]
+
             if banned_role and banned_role in message.author.roles:
-                # რეგისტრაციის არხების სია
-                registration_channels = [
-                    record.get("channel_id_19_00"),
-                    record.get("channel_id_22_00"),
-                    record.get("channel_id_00_30")
-                ]
-                
-                # თუ შეტყობინება რეგისტრაციის არხზეა, დაემატოს რეაქცია
                 if message.channel.id in registration_channels:
-                    # დავაყოვნოთ 15 წამი რეაქციის დამატებამდე
                     await asyncio.sleep(15)
-                    deny_emoji = record.get("custom_react_emoji_deny", "❌")
+                    await message.add_reaction(deny_emoji)  # ✅ დაამატე რეაქცია აქ
             else:
                 pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
                 match = re.match(pattern, message.content.strip())
 
                 if match:
-                    # დროების სია
-                    time_slots = ["19_00", "22_00", "00_30"]  # time_slots მხოლოდ აქ უნდა იყოს
+                    time_slots = ["19_00", "22_00", "00_30"]
 
                     for slot in time_slots:
                         channel_key = f"channel_id_{slot}"
                         role_key = f"role_{slot}"
                         messages_key = f"registered_messages_{slot.replace('_', ':')}"
 
-                        # მხოლოდ შესაბამის არხზე არ უნდა მიემართოს რეაქცია
                         if channel_key in record and message.channel.id == record[channel_key]:
-                            # დავაყოვნოთ 15 წამი რეაქციების დამატებამდე
                             await asyncio.sleep(15)
-                            allow_emoji = record.get("custom_react_emoji_allow", "✅")
-
-
                             role = message.guild.get_role(record.get(role_key))
+
                             if role:
                                 await message.author.add_roles(role)
+                                await message.add_reaction(allow_emoji)  # ✅ დაამატე რეაქცია აქ
 
-                            # განახლება MongoDB-ში
+                            # MongoDB განახლება
                             channel_collection.update_one(
                                 {"guild_id": guild_id},
                                 {"$addToSet": {messages_key: {
                                     "message_id": message.id,
                                     "content": message.content
-                                }}} ,
+                                }}},
                                 upsert=True
                             )
-                            break  # გავჩერდეთ როცა შესაბამის არხზე ვიპოვით ემთხვევას
+                            break
     except Exception as e:
         print(f"[ERROR] {e}")
 
-    # prefix ქომანდების მუშაობა
     await bot.process_commands(message)
 
 @bot.event
