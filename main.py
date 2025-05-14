@@ -1071,7 +1071,7 @@ async def getresult(ctx):
             inline=False
         )
 
-    embed.set_footer(text="Created by your bot 💻")
+    embed.set_footer(text="შექმნა PIXELAS PRACKS 💻")
 
     # რეაქციის მსგავსი გამოჩენა
     await ctx.send("|| @everyone ||")
