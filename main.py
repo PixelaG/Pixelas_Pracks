@@ -116,7 +116,7 @@ async def on_message(message):
                 if message.channel.id in registration_channels:
                     # დავაყოვნოთ 15 წამი რეაქციის დამატებამდე
                     await asyncio.sleep(15)
-                    await message.add_reaction("❌")  # ემატება ❌ რეაქცია
+                    deny_emoji = record.get("custom_react_emoji_deny", "❌")
             else:
                 pattern = r"^[^\n]+[ /|][^\n]+[ /|]<@!?[0-9]+>$"
                 match = re.match(pattern, message.content.strip())
@@ -134,7 +134,8 @@ async def on_message(message):
                         if channel_key in record and message.channel.id == record[channel_key]:
                             # დავაყოვნოთ 15 წამი რეაქციების დამატებამდე
                             await asyncio.sleep(15)
-                            await message.add_reaction("✅")  # ემატება ✅ რეაქცია
+                            allow_emoji = record.get("custom_react_emoji_allow", "✅")
+
 
                             role = message.guild.get_role(record.get(role_key))
                             if role:
@@ -1086,6 +1087,38 @@ async def rolerall(ctx, role: discord.Role):
                 pass  # შეცდომა Discord-ისგან
 
     await ctx.send(f"✅ `{role.name}` როლი ჩამოერთვა {removed_count} წევრს.")
+
+
+@bot.command(name="customreactallow")
+@commands.has_permissions(administrator=True)
+async def set_custom_allow_emoji(ctx, emoji: str):
+    guild_id = ctx.guild.id
+    try:
+        channel_collection.update_one(
+            {"guild_id": guild_id},
+            {"$set": {"custom_react_emoji_allow": emoji}},
+            upsert=True
+        )
+        await ctx.send(f"✅ დადებითი რეაქცია წარმატებით განახლდა: {emoji}")
+    except Exception as e:
+        await ctx.send("❌ შეცდომა დადებითი ემოჯის შეცვლისას.")
+        print(f"[ERROR] {e}")
+
+
+@bot.command(name="customreactdeny")
+@commands.has_permissions(administrator=True)
+async def set_custom_deny_emoji(ctx, emoji: str):
+    guild_id = ctx.guild.id
+    try:
+        channel_collection.update_one(
+            {"guild_id": guild_id},
+            {"$set": {"custom_react_emoji_deny": emoji}},
+            upsert=True
+        )
+        await ctx.send(f"✅ უარყოფითი რეაქცია წარმატებით განახლდა: {emoji}")
+    except Exception as e:
+        await ctx.send("❌ შეცდომა უარყოფითი ემოჯის შეცვლისას.")
+        print(f"[ERROR] {e}")
     
 
 
