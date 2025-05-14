@@ -41,6 +41,7 @@ db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
 collection = db["teams"]
+collection = db["results"]
 
 
 intents = discord.Intents.default()
