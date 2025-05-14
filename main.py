@@ -1151,8 +1151,8 @@ async def custom_help(ctx):
     embed.add_field(
         name="🔖 **რეგისტრაციის React**",
         value=(
-        "🔹 `p!customreactallow (Emoji)` – დადასტურებების ემოჯის დაყენება",
-        "🔹 `p!customreactdeny (Emoji)` – უარყოფილის ემოჯის დაყენება",
+        "🔹 `p!customreactallow (Emoji)` – დადასტურებების ემოჯის დაყენება\n"
+        "🔹 `p!customreactdeny (Emoji)` – უარყოფილის ემოჯის დაყენება\n"
         ),
         inline=False
     )
