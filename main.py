@@ -971,6 +971,7 @@ def calculate_points(place, eliminations):
     # თუ ადგილი 13-ზე მეტია, არ დაამატოს ადგილის ქულა, მაგრამ დაამატოს მკვლელობები
     return place_points.get(place, 0) + eliminations
 
+
 # !createresult - რამდენიმე გუნდის მონაცემების შესატანად
 @bot.command()
 async def createresult(ctx, *args):
@@ -989,7 +990,8 @@ async def createresult(ctx, *args):
             eliminations = int(args[i + 2])
             points = calculate_points(place, eliminations)
 
-            existing = collection.find_one({"team_name": team_name})
+            guild_id = ctx.guild.id  # თითოეული სერვერის guild_id
+            existing = collection.find_one({"guild_id": guild_id, "team_name": team_name})
 
             if existing:
                 # უკვე არსებობს — ვაკეთებთ მხოლოდ ქულების და მკვლელობების განახლებას
@@ -997,7 +999,7 @@ async def createresult(ctx, *args):
                 new_points = existing['points'] + points
 
                 collection.update_one(
-                    {"team_name": team_name},
+                    {"guild_id": guild_id, "team_name": team_name},
                     {"$set": {
                         "eliminations": new_eliminations,
                         "points": new_points
@@ -1007,7 +1009,7 @@ async def createresult(ctx, *args):
             else:
                 # ახალი გუნდი — ვამატებთ
                 collection.insert_one({
-                    "user": ctx.author.name,
+                    "guild_id": guild_id,  # სერვერის ID
                     "team_name": team_name,
                     "eliminations": eliminations,
                     "points": points
@@ -1016,6 +1018,7 @@ async def createresult(ctx, *args):
 
     except Exception as e:
         await ctx.send(f"❌ შეცდომა: {e}")
+        
 
 # !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
@@ -1024,7 +1027,12 @@ async def getresult(ctx):
     if not member:
         return
 
+    guild_id = ctx.guild.id  # ✅ გამოვითხოვთ სერვერის ID-ს
+
     pipeline = [
+        {
+            "$match": {"guild_id": guild_id}  # ✅ მხოლოდ ამ სერვერის მონაცემები
+        },
         {
             "$group": {
                 "_id": "$team_name",
@@ -1043,10 +1051,8 @@ async def getresult(ctx):
         await ctx.send("📭 შედეგები არ არის.")
         return
 
-    # გამარჯვებული გუნდი
     winner = grouped_results[0]['_id']
 
-    # Embed შექმნა
     embed = discord.Embed(
         title="📢 შედეგები!",
         description=(
@@ -1060,7 +1066,7 @@ async def getresult(ctx):
 
     medals = ["🥇", "🥈", "🥉"]
 
-    for idx, r in enumerate(grouped_results[:12], start=1):  # მხოლოდ 12 გუნდი
+    for idx, r in enumerate(grouped_results[:12], start=1):
         team = r['_id']
         total_points = r['total_points']
         kills = r['total_eliminations']
@@ -1071,9 +1077,7 @@ async def getresult(ctx):
             inline=False
         )
 
-    embed.set_footer(text="შექმნა PIXELAS PRACKS 💻")
-
-    # რეაქციის მსგავსი გამოჩენა
+    embed.set_footer(text="Result - შექ PIXELAS PRACKS 💻")
     await ctx.send("|| @everyone ||")
     await ctx.send(embed=embed)
 
