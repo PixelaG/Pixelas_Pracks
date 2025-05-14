@@ -32,8 +32,6 @@ keep_alive()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 mongo_uri = os.getenv("MONGO_URI")
-OCR_API_KEY = os.getenv("OCR_API_KEY")
-
 
 
 client = MongoClient(mongo_uri)
@@ -41,7 +39,6 @@ db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
 collection = db["teams"]
-result_collection = db["results"]
 
 
 intents = discord.Intents.default()
@@ -261,26 +258,29 @@ async def on_guild_join(guild):
         print(f"❌ შეცდომა on_guild_join-ში: {e}")
         
 
+MAIN_LOG_CHANNEL_ID = 1372338023987150858  # მთავარი Discord არხის ID
+
 async def check_expired_roles():
     """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
     while True:
         try:
             now = datetime.utcnow()
             expired_entries = access_entries.find({"expiry_time": {"$lt": now}})
-            
+
             for entry in expired_entries:
                 guild = bot.get_guild(entry["guild_id"])
                 if not guild:
                     access_entries.delete_one({"_id": entry["_id"]})
                     continue
-                
+
                 try:
                     member = await guild.fetch_member(entry["user_id"])
                     role = guild.get_role(entry["role_id"])
-                    
+
                     if role and member and role in member.roles:
                         await member.remove_roles(role)
-                        
+
+                        # ლოგ არხში შეტყობინება
                         log_channel = guild.get_channel(entry["log_channel_id"])
                         if log_channel:
                             expired_embed = discord.Embed(
@@ -295,33 +295,24 @@ async def check_expired_roles():
                             )
                             await log_channel.send(embed=expired_embed)
 
-                    # 🟥 MAIN არხში შეტყობინების გაგზავნა
-                    main_channel = bot.get_channel(1372338023987150858)
-                    server_data = access_entries.find_one({"guild_id": guild.id})
-                    owner_mention = f"<@{server_data['owner_id']}>" if server_data and "owner_id" in server_data else "უცნობი"
-
+                    # მივწეროთ მთავარ არხში და გავიდეს ბოტი
+                    main_channel = bot.get_channel(MAIN_LOG_CHANNEL_ID)
                     if main_channel:
-                        await main_channel.send(
-                            f"⚠️ ვადა გაუვიდა მომხმარებელს {owner_mention} სერვერზე **{guild.name}**.\n"
-                            f"ბოტი ტოვებს სერვერს... `p!leaveserver {guild.id}`"
-                        )
-
-                    # 🟥 დატოვე სერვერი
-                    await asyncio.sleep(5)
+                        await main_channel.send(f"⚠️ ვადა გაუვიდა მომხმარებელს {member.mention} სერვერზე `{guild.name}`.")
+                    
                     await guild.leave()
 
-                    # 🧹 წაშალე ჩანაწერი
                     access_entries.delete_one({"_id": entry["_id"]})
-                
+
                 except discord.NotFound:
                     access_entries.delete_one({"_id": entry["_id"]})
                 except Exception as e:
-                    print(f"შეცდომა როლის ამოღებისას: {e}")
-        
+                    print(f"შეცდომა როლის ამოღებისას ან სერვერიდან გასვლისას: {e}")
+
         except Exception as e:
             print(f"შეცდომა check_expired_roles-ში: {e}")
-        
-        await asyncio.sleep(300)  # 5 წუთში ერთხელ ამოწმებს
+
+        await asyncio.sleep(300)
 
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
