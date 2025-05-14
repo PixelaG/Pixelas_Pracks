@@ -258,6 +258,7 @@ async def check_expired_roles():
                     if role and member and role in member.roles:
                         await member.remove_roles(role)
                         
+                        # ლოგის არხი
                         log_channel = guild.get_channel(entry["log_channel_id"])
                         if log_channel:
                             expired_embed = discord.Embed(
@@ -271,9 +272,18 @@ async def check_expired_roles():
                                 inline=True
                             )
                             await log_channel.send(embed=expired_embed)
-                    
+
+                        # მთავარ არხში შეტყობინების გამოგზავნა
+                        main_channel = bot.get_channel(1372338023987150858)  # თქვენი მთავარი არხი
+                        if main_channel:
+                            await main_channel.send(f"⚠️ ვადა გაუვიდა მომხმარებელს <@{entry['user_id']}> სერვერზე {guild.name}.")
+
+                        # სერვერიდან გასვლა
+                        await guild.leave()
+
+                    # MongoDB მონაცემების წაშლა
                     access_entries.delete_one({"_id": entry["_id"]})
-                
+
                 except discord.NotFound:
                     access_entries.delete_one({"_id": entry["_id"]})
                 except Exception as e:
@@ -282,7 +292,7 @@ async def check_expired_roles():
         except Exception as e:
             print(f"შეცდომა check_expired_roles-ში: {e}")
         
-        await asyncio.sleep(300)
+        await asyncio.sleep(300)  # ყოველ 5 წუთში შეამოწმებს
 
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
@@ -1090,6 +1100,21 @@ async def resultclear(ctx):
 
     collection.delete_many({})
     await ctx.send("🗑️ ყველა შედეგი წაიშალა.")
+
+
+@bot.command()
+async def leaveserver(ctx, guild_id: int):
+    """გამოიყვანს ბოტს სერვერიდან"""
+    if not ctx.author.guild_permissions.administrator:
+        await ctx.send("❌ თქვენ არ გაქვთ ამის გაკეთების უფლება.")
+        return
+    
+    guild = bot.get_guild(guild_id)
+    if guild:
+        await guild.leave()
+        await ctx.send(f"✅ ბოტი დატოვა სერვერი: {guild.name}")
+    else:
+        await ctx.send("❌ სერვერი ვერ მოიძებნა.")
 
 
 @bot.command()
