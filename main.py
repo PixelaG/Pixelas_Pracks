@@ -235,25 +235,10 @@ async def on_message_delete(message):
                     if member and role in member.roles:
                         await member.remove_roles(role)
                         print(f"Removed role {role.name} from {member.name} for {label} due to message deletion.")
-
-
-@bot.event
-async def on_guild_join(guild):
-    guild_data = {
-        "guild_id": guild.id,
-        "guild_name": guild.name,
-        "joined_at": datetime.utcnow(),
-        "owner_id": guild.owner_id
-    }
-    servers_collection.update_one(
-        {"guild_id": guild.id},
-        {"$set": guild_data},
-        upsert=True
-    )
-    print(f"სერვერი დაემატა ბაზაში: {guild.name}")
         
 
 async def check_expired_roles():
+    """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
     while True:
         try:
             now = datetime.utcnow()
@@ -274,35 +259,41 @@ async def check_expired_roles():
                         # ლოკალური ლოგი
                         log_channel = guild.get_channel(entry["log_channel_id"])
                         if log_channel:
-                            embed = discord.Embed(
+                            expired_embed = discord.Embed(
                                 title="⏰ დაკარგა წვდომა",
-                                description=f"{member.mention}-ს წაერთვა {role.name}",
+                                description=f"{member.mention}-ს აღარ აქვს {role.name} როლი",
                                 color=discord.Color.red()
                             )
-                            embed.add_field(name="🔚 ვადა გაუვიდა", value=f"<t:{int(entry['expiry_time'].timestamp())}:F>")
-                            await log_channel.send(embed=embed)
+                            expired_embed.add_field(
+                                name="🔚 ვადა გაუვიდა",
+                                value=f"<t:{int(entry['expiry_time'].timestamp())}:F>",
+                                inline=True
+                            )
+                            await log_channel.send(embed=expired_embed)
 
                         # გლობალური ლოგი
-                        main_guild = bot.get_guild(1005186618031869952)
+                        main_guild_id = 1005186618031869952
+                        log_channel_id = 1372338023987150858
+                        main_guild = bot.get_guild(main_guild_id)
                         if main_guild:
-                            log_channel = main_guild.get_channel(1372338023987150858)
-                            if log_channel:
-                                await log_channel.send(f"⚠️ ვადა გაუვიდა {member.mention}-ს სერვერზე **{guild.name}**.")
+                            main_log_channel = main_guild.get_channel(log_channel_id)
+                            if main_log_channel:
+                                await main_log_channel.send(
+                                    f"⚠️ ვადა გაუვიდა მომხმარებელს {member.mention} სერვერზე **{guild.name}**."
+                                )
 
-                        # წაშალე წვდომის ჩანაწერი
-                        access_entries.delete_one({"_id": entry["_id"]})
+                    # წაშალე ვადაგასული ჩანაწერი
+                    access_entries.delete_one({"_id": entry["_id"]})
 
-                        # გადაამოწმე დარჩენილი წვდომები ამ სერვერზე
-                        still_active = access_entries.find_one({"guild_id": guild.id})
-                        if not still_active:
-                            # წაშალე სერვერის ჩანაწერიც
-                            servers_collection.delete_one({"guild_id": guild.id})
+                    # გადაამოწმე დარჩა თუ არა ამ სერვერის სხვა ჩანაწერი
+                    remaining = access_entries.count_documents({"guild_id": guild.id})
 
-                            # ბოტი ტოვებს სერვერს
-                            try:
-                                await guild.leave()
-                            except Exception as e:
-                                print(f"ბოტის გამოსვლის შეცდომა: {e}")
+                    if remaining == 0 and guild.id != main_guild_id:
+                        try:
+                            await guild.leave()
+                            print(f"ბოტი გამოვიდა სერვერიდან: {guild.name}")
+                        except Exception as e:
+                            print(f"შეცდომა ბოტის გამოსვლისას: {e}")
 
                 except discord.NotFound:
                     access_entries.delete_one({"_id": entry["_id"]})
@@ -312,8 +303,7 @@ async def check_expired_roles():
         except Exception as e:
             print(f"შეცდომა check_expired_roles-ში: {e}")
 
-        await asyncio.sleep(300)
-
+        await asyncio.sleep(300)  # 5 წუთში ერთხელ ამოწმებს
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
     embed = discord.Embed(title=title, description=description, color=color)
@@ -888,6 +878,9 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         access_entry = {
             "user_id": target_member.id,
             "guild_id": target_guild.id,
+            "guild_name": target_guild.name,
+            "owner_id": target_guild.owner_id,
+            "joined_at": datetime.utcnow(),  # როცა ბოტი პირველად გაცემს წვდომას
             "role_id": access_role.id,
             "log_channel_id": LOG_CHANNEL_ID,
             "assigned_by": interaction.user.id,
