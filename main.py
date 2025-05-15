@@ -290,7 +290,7 @@ async def check_expired_access():
                     except Exception as e:
                         print(f"Could not leave guild {guild_id}: {e}")
         
-        await asyncio.sleep(30)  # ყოველ 30 წამში ამოწმებს
+        await asyncio.sleep(500)  # ყოველ 5 წუთსი ამოწმებს
         
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
