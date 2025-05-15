@@ -52,10 +52,8 @@ bot = commands.Bot(command_prefix="p!", intents=intents, help_command=None)
 @bot.event
 async def on_ready():
     print(f"✅ Bot connected as {bot.user}")
+    bot.loop.create_task(check_expired_access())
     await bot.change_presence(status=discord.Status.invisible)
-    
-    
-    bot.loop.create_task(check_expired_roles())
     
     try:
         now = datetime.utcnow()
@@ -237,76 +235,62 @@ async def on_message_delete(message):
                         print(f"Removed role {role.name} from {member.name} for {label} due to message deletion.")
         
 
-async def check_expired_roles():
-    """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
-    MAIN_SERVER_ID = 1120711931670577203
-    ROLE_ID = 1368589143546003587
-    LOG_CHANNEL_ID = 1365381000619622460
+async def check_expired_access():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        now = datetime.utcnow()
+        expired_entries = access_entries.find({"expiry_time": {"$lte": now}, "is_active": True})
 
-    while True:
-        try:
-            now = datetime.utcnow()
-            expired_entries = access_entries.find({"expiry_time": {"$lt": now}})
+        for entry in expired_entries:
+            user_id = entry["user_id"]
+            guild_id = entry["guild_id"]
+            role_id = entry["role_id"]
+            log_channel_id = entry.get("log_channel_id")
             
-            for entry in expired_entries:
-                target_guild = bot.get_guild(entry["guild_id"])
-                if not target_guild:
-                    access_entries.delete_one({"_id": entry["_id"]})
-                    continue
+            main_guild = bot.get_guild(MAIN_SERVER_ID)
+            if not main_guild:
+                continue
 
-                try:
-                    member = await target_guild.fetch_member(entry["user_id"])
-                    
-                    # მოვიძიოთ მთავარი სერვერიდან ლოგის არხი და როლი
-                    main_guild = bot.get_guild(MAIN_SERVER_ID)
-                    if not main_guild:
-                        continue
+            try:
+                member = await main_guild.fetch_member(user_id)
+                role = main_guild.get_role(role_id)
 
-                    role = main_guild.get_role(ROLE_ID)
-                    log_channel = main_guild.get_channel(LOG_CHANNEL_ID)
+                if member and role:
+                    await member.remove_roles(role)
+            except discord.NotFound:
+                pass
+            except discord.Forbidden:
+                pass
+            except Exception as e:
+                print(f"Error removing role from user {user_id}: {e}")
 
-                    if role and member and role in member.roles:
-                        await member.remove_roles(role)
+            # remove from database
+            access_entries.delete_one({"_id": entry["_id"]})
 
-                        if log_channel:
-                            expired_embed = discord.Embed(
-                                title="⏰ წვდომის ვადა ამოიწურა",
-                                description=f"{member.mention}-ს მოეხსნა {role.name} როლი სერვერზე `{target_guild.name}`",
-                                color=discord.Color.red()
-                            )
-                            expired_embed.add_field(
-                                name="🔚 ვადა გაუვიდა",
-                                value=f"<t:{int(entry['expiry_time'].timestamp())}:F>",
-                                inline=True
-                            )
-                            await log_channel.send(embed=expired_embed)
+            # log expiry
+            if log_channel_id:
+                log_channel = main_guild.get_channel(log_channel_id)
+                if log_channel:
+                    embed = discord.Embed(
+                        title="⌛ წვდომის ვადა ამოიწურა",
+                        description=f"🎖 <@{user_id}>-ს წვდომის დრო ამოიწურა",
+                        color=discord.Color.red()
+                    )
+                    embed.set_footer(text="Pixelas Access System")
+                    await log_channel.send(embed=embed)
 
-                    # წაშალე ბაზიდან
-                    access_entries.delete_one({"_id": entry["_id"]})
-
-                    # დარჩა თუ არა კიდევ ვინმე ამ სერვერზე?
-                    remaining = access_entries.count_documents({"guild_id": entry["guild_id"]})
-                    if remaining == 0:
-                        if log_channel:
-                            leave_embed = discord.Embed(
-                                title="🚪 ბოტი ტოვებს სერვერს",
-                                description=f"❌ `{target_guild.name}`-ზე წვდომა აღარავის დარჩა.\n🤖 ბოტი ავტომატურად გამოდის.",
-                                color=discord.Color.dark_red()
-                            )
-                            await log_channel.send(embed=leave_embed)
-
-                        await target_guild.leave()
-                        print(f"🚪 ბოტი გავიდა სერვერიდან: {target_guild.name} ({target_guild.id})")
-
-                except discord.NotFound:
-                    access_entries.delete_one({"_id": entry["_id"]})
-                except Exception as e:
-                    print(f"⚠️ შეცდომა როლის მოხსნისას: {e}")
+            # now check if this guild has no more valid entries
+            remaining = access_entries.count_documents({"guild_id": guild_id})
+            if remaining == 0:
+                guild = bot.get_guild(guild_id)
+                if guild:
+                    try:
+                        await guild.leave()
+                        print(f"🛫 ბოტი გავიდა სერვერიდან: {guild.name}")
+                    except Exception as e:
+                        print(f"Could not leave guild {guild_id}: {e}")
         
-        except Exception as e:
-            print(f"🔥 check_expired_roles შეცდომა: {e}")
-
-        await asyncio.sleep(300)  # 5 წუთში ერთხელ
+        await asyncio.sleep(30)  # ყოველ 30 წამში ამოწმებს
         
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
