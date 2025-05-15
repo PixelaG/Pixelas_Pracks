@@ -140,6 +140,7 @@ async def on_message(message):
                                 {"guild_id": guild_id},
                                 {"$addToSet": {messages_key: {
                                     "message_id": message.id,
+                                    "user_id": message.author.id,
                                     "content": message.content
                                 }}},
                                 upsert=True
