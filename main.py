@@ -898,7 +898,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
 
 
 
-@bot.tree.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან და ჩამოართმევს შესაბამის როლს")
+@bot.tree.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან და წევრს ჩამოართმევს შესაბამის როლს")
 @app_commands.describe(message_id="შეტყობინების ID")
 @app_commands.checks.has_permissions(administrator=True)
 async def unlist(interaction: discord.Interaction, message_id: str):
@@ -907,65 +907,94 @@ async def unlist(interaction: discord.Interaction, message_id: str):
         return
 
     try:
+        await interaction.response.defer(ephemeral=True)
         guild_id = interaction.guild.id
         record = db["registered_channels"].find_one({"guild_id": guild_id})
+
         if not record:
-            await interaction.response.send_message("⚠️ არხის ჩანაწერი ვერ მოიძებნა.", ephemeral=True)
+            await interaction.followup.send("⚠️ არხის ჩანაწერი ვერ მოიძებნა.", ephemeral=True)
             return
 
-        registered_messages_keys = [
-            ("registered_messages_19:00", "role_19_00"),
-            ("registered_messages_22:00", "role_22_00"),
-            ("registered_messages_00:30", "role_00_30")
-        ]
+        registered_messages_keys = {
+            "registered_messages_19:00": "role_19_00",
+            "registered_messages_22:00": "role_22_00",
+            "registered_messages_00:30": "role_00_30"
+        }
 
-        message_id_long = None
         try:
             message_id_long = int(message_id)
         except ValueError:
-            await interaction.response.send_message("❗ გთხოვთ შეიყვანოთ სწორი ID (მხოლოდ რიცხვები)", ephemeral=True)
+            await interaction.followup.send("❌ გთხოვთ მიუთითოთ სწორი შეტყობინების ID (რიცხვი).", ephemeral=True)
             return
 
-        for time_key, role_key in registered_messages_keys:
+        for time_key, role_key in registered_messages_keys.items():
             if time_key not in record:
                 continue
 
             registered_messages = record[time_key]
-            new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_long]
+            removed_message = next((msg for msg in registered_messages if msg["message_id"] == message_id_long), None)
 
-            if len(new_list) != len(registered_messages):
-                # ვიპოვეთ და ვშლით სიიდან
+            if removed_message:
+                # ამოვშალოთ სიიდან
+                new_list = [msg for msg in registered_messages if msg["message_id"] != message_id_long]
                 db["registered_channels"].update_one(
                     {"guild_id": guild_id},
                     {"$set": {time_key: new_list}}
                 )
 
-                # მოიძებნოს message-ის ავტორი
-                removed_message = next((msg for msg in registered_messages if msg["message_id"] == message_id_long), None)
-                if removed_message:
-                    user_id = removed_message.get("user_id")
-                    if user_id:
-                        try:
-                            member_to_update = await interaction.guild.fetch_member(user_id)
-                            role_id = record.get(role_key)
-                            if role_id:
-                                role = interaction.guild.get_role(role_id)
-                                if role and role in member_to_update.roles:
-                                    await member_to_update.remove_roles(role, reason="Removed via /unlist")
-                        except Exception as e:
-                            print(f"🔴 ვერ მოხერხდა როლის წართმევა: {e}")
+                # როლის წართმევის ლოგიკა
+                user_id = removed_message.get("user_id")
+                if not user_id:
+                    await interaction.followup.send(
+                        f"✅ შეტყობინება ID {message_id} ამოღებულია Team List {time_key}-დან.\n⚠️ მაგრამ user_id ვერ მოიძებნა შეტყობინებაში.",
+                        ephemeral=True
+                    )
+                    return
 
-                await interaction.response.send_message(
-                    f"✅ შეტყობინება ID `{message_id}` ამოღებულია Team List {time_key}-დან და როლი ჩამოერთვა (თუ ქონდა).",
-                    ephemeral=True
-                )
+                try:
+                    member_to_update = await interaction.guild.fetch_member(user_id)
+                except discord.NotFound:
+                    await interaction.followup.send(
+                        f"✅ შეტყობინება ID {message_id} ამოღებულია Team List {time_key}-დან.\n⚠️ თუმცა მომხმარებელი არ მოიძებნა სერვერზე.",
+                        ephemeral=True
+                    )
+                    return
+
+                role_id = record.get(role_key)
+                if not role_id:
+                    await interaction.followup.send(
+                        f"✅ შეტყობინება ID {message_id} ამოღებულია Team List {time_key}-დან.\n⚠️ მაგრამ შესაბამისი როლი ბაზაში ვერ მოიძებნა ({role_key}).",
+                        ephemeral=True
+                    )
+                    return
+
+                role = interaction.guild.get_role(role_id)
+                if not role:
+                    await interaction.followup.send(
+                        f"✅ შეტყობინება ID {message_id} ამოღებულია Team List {time_key}-დან.\n⚠️ მითითებული როლი ({role_id}) არ მოიძებნა სერვერზე.",
+                        ephemeral=True
+                    )
+                    return
+
+                if role in member_to_update.roles:
+                    await member_to_update.remove_roles(role, reason="/unlist ბრძანებით")
+                    await interaction.followup.send(
+                        f"✅ შეტყობინება ID {message_id} წარმატებით ამოღებულია Team List {time_key}-დან და როლი `{role.name}` ჩამოერთვა.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.followup.send(
+                        f"✅ შეტყობინება ID {message_id} ამოღებულია Team List {time_key}-დან.\nℹ️ წევრს არ ჰქონდა `{role.name}` როლი.",
+                        ephemeral=True
+                    )
                 return
 
-        await interaction.response.send_message("⚠️ მითითებული ID ვერ მოიძებნა Team List-ებში.", ephemeral=True)
+        # თუ ვერცერთ სიაში ვერ მოიძებნა
+        await interaction.followup.send("⚠️ მითითებული ID ვერ მოიძებნა Team List-ში.", ephemeral=True)
 
     except Exception as e:
-        print(f"⚠️ შეცდომა /unlist-ში: {e}")
-        await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
+        print(f"🔴 შეცდომა /unlist: {e}")
+        await interaction.followup.send(f"⚠️ მოხდა შეცდომა: {e}", ephemeral=True)
         
 
 def calculate_points(place, eliminations):
