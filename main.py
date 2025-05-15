@@ -810,7 +810,7 @@ async def clearlist_00_30(interaction: discord.Interaction):
 @app_commands.describe(
     user="მომხმარებელი, რომელსაც უნდა მიეცეს წვდომა",
     duration="დრო (მაგ. 1d, 5h, 30m)",
-    server_id="სერვერის ID, სადაც მომხმარებელს აქვს წვდომა"
+    server_id="სერვერის ID (ციფრები)"
 )
 @bot.tree.command(name="giveaccess", description="⚔️ მიანიჭეთ წვდომა მებრძოლს (მხოლოდ მფლობელისთვის)")
 async def giveaccess(interaction: discord.Interaction, user: discord.User, duration: str, server_id: int):
@@ -825,15 +825,16 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         )
         return
 
-    # სერვერი, სადაც ბრძანება გამოიყენება
-    current_guild = interaction.guild
-    if not current_guild:
-        await send_embed_notification(interaction, "🌐 სერვერი არ არის", "ეს ბრძანება შეგიძლიათ გამოიყენოთ მხოლოდ სერვერზე")
+    # აქ არ იყენებ წინასწარ განსაზღვრულ სერვერს, ვიღებთ server_id-ს პარამეტრად
+    target_guild = bot.get_guild(server_id)
+    if not target_guild:
+        await send_embed_notification(interaction, "❌ არასწორი სერვერი", f"ბრძანება შეგიძლიათ გამოიყენოთ მხოლოდ სერვერზე ID-ით, რომელსაც ბოტი არის დაკავშირებული.")
         return
 
     ROLE_ID = 1368589143546003587
     LOG_CHANNEL_ID = 1365381000619622460
 
+    # ტერმინალი ფორმატის წაკითხვა
     try:
         time_unit = duration[-1].lower()
         time_value = duration[:-1]
@@ -864,35 +865,34 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         expiry_time = datetime.utcnow() + delta
 
         try:
-            target_member = await current_guild.fetch_member(user.id)
+            target_member = await target_guild.fetch_member(user.id)
         except discord.NotFound:
             await send_embed_notification(interaction, "🎯 მოთამაშე არ მოიძებნა", f"{user.mention} არ არის სერვერზე.")
             return
 
-        access_role = current_guild.get_role(ROLE_ID)
+        access_role = target_guild.get_role(ROLE_ID)
         if not access_role:
-            await send_embed_notification(interaction, "🎖 როლი დაკარგულია", "დარწმუნდით, რომ წვდომის როლი არსებობს სერვერზე")
+            await send_embed_notification(interaction, "🎖 როლი დაკარგულია", "დარწმუნდით, რომ სერვერზე წვდომის როლი არსებობს")
             return
 
         await target_member.add_roles(access_role)
 
         access_entry = {
             "user_id": target_member.id,
-            "guild_id": current_guild.id,
+            "guild_id": target_guild.id,
             "role_id": access_role.id,
             "log_channel_id": LOG_CHANNEL_ID,
             "assigned_by": interaction.user.id,
             "duration": duration,
             "assigned_at": datetime.utcnow(),
             "expiry_time": expiry_time,
-            "is_active": True,
-            "server_id": server_id  # აქ შენ ინახავ არგუმენტად მოწოდებულ სერვერის ID-ს
+            "is_active": True
         }
         access_entries.insert_one(access_entry)
 
         log_embed = discord.Embed(
             title="🎖 წვდომა გაცემულია (Pixelas Pracks)",
-            description="🛡 **Access Granted to the Squad Member**",
+            description=f"🛡 **Access Granted to the Squad Member**\nსერვერი: {target_guild.name} ({target_guild.id})",
             color=discord.Color.gold()
         )
         log_embed.add_field(name="🎮 მოთამაშე", value=f"{target_member.mention} ({target_member.display_name})", inline=False)
@@ -902,7 +902,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         log_embed.set_thumbnail(url=target_member.display_avatar.url)
         log_embed.set_footer(text=f"🎯 Player ID: {target_member.id} | 🗓 Deployment Time")
 
-        log_channel = current_guild.get_channel(LOG_CHANNEL_ID)
+        log_channel = target_guild.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             await log_channel.send(embed=log_embed)
 
