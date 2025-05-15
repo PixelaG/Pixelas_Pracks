@@ -814,58 +814,37 @@ async def clearlist_00_30(interaction: discord.Interaction):
         await interaction.response.send_message(f"⚠️ შეცდომა მოხდა: {e}", ephemeral=True)
 
 
+MAIN_SERVER_ID = 1005186618031869952
+ROLE_ID = 1368589143546003587
+LOG_CHANNEL_ID = 1365381000619622460
+
 @bot.tree.command(name="giveaccess", description="⚔️ მიანიჭეთ წვდომა მებრძოლს (მხოლოდ მფლობელისთვის)")
 @app_commands.describe(
     user="მომხმარებელი, რომელსაც უნდა მიეცეს წვდომა",
     duration="დრო (მაგ. 1d, 5h, 30m)",
-    server_id="სერვერის ID (ციფრები)"
+    server_id="სერვერის ID (ინფორმაციული, წვდომა გაცემულია მთავარ სერვერზე)"
 )
 async def giveaccess(interaction: discord.Interaction, user: discord.User, duration: str, server_id: str):
     await bot.wait_until_ready()
 
-    BOT_OWNER_ID = 475160980280705024
-    if interaction.user.id != BOT_OWNER_ID:
-        await send_embed_notification(
-            interaction,
-            "❌ წვდომა უარყოფილია",
-            "🛑 მხოლოდ **Commander** (ბოტის მფლობელი) შეიძლება გასცეს წვდომა!"
-        )
+    if interaction.user.id != 475160980280705024:
+        await send_embed_notification(interaction, "❌ წვდომა უარყოფილია", "🛑 მხოლოდ **Commander** (ბოტის მფლობელი) შეიძლება გასცეს წვდომა!")
         return
 
     if not server_id.isdigit():
-        await send_embed_notification(
-            interaction,
-            "📛 არასწორი სერვერის ID",
-            "📦 Server ID უნდა იყოს მხოლოდ ციფრებით შედგენილი, მაგ: `112233445566778899`"
-        )
+        await send_embed_notification(interaction, "📛 არასწორი სერვერის ID", "📦 Server ID უნდა იყოს მხოლოდ ციფრებით შედგენილი.")
         return
 
-    server_id = int(server_id)
-    target_guild = bot.get_guild(server_id)
-    if not target_guild:
-        await send_embed_notification(
-            interaction,
-            "❌ არასწორი სერვერი",
-            "ბოტი არ არის დაკავშირებული მითითებულ სერვერზე."
-        )
+    # მთავარი სერვერზე იმუშავებს ბოტი
+    main_guild = bot.get_guild(MAIN_SERVER_ID)
+    if not main_guild:
+        await send_embed_notification(interaction, "❌ მთავარი სერვერი ვერ მოიძებნა", "დარწმუნდით, რომ ბოტი იმყოფება მთავარ სერვერზე.")
         return
-
-    ROLE_ID = 1368589143546003587
-    LOG_CHANNEL_ID = 1365381000619622460
 
     try:
         time_unit = duration[-1].lower()
-        time_value = duration[:-1]
+        time_value = int(duration[:-1])
 
-        if not time_value.isdigit():
-            await send_embed_notification(
-                interaction,
-                "📛 არასწორი ფორმატი",
-                "📦 გამოიყენე მაგ. 1d, 5h, 30m (დღე/საათი/წუთი)"
-            )
-            return
-
-        time_value = int(time_value)
         if time_unit == 'd':
             delta = timedelta(days=time_value)
         elif time_unit == 'h':
@@ -873,40 +852,28 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         elif time_unit == 'm':
             delta = timedelta(minutes=time_value)
         else:
-            await send_embed_notification(
-                interaction,
-                "📛 უცნობი ერთეული",
-                "🧭 გამოიყენე მხოლოდ: d (დღე), h (საათი), m (წუთი)"
-            )
+            await send_embed_notification(interaction, "📛 უცნობი ერთეული", "🧭 გამოიყენე მხოლოდ: d (დღე), h (საათი), m (წუთი)")
             return
 
         expiry_time = datetime.utcnow() + delta
 
         try:
-            target_member = await target_guild.fetch_member(user.id)
+            target_member = await main_guild.fetch_member(user.id)
         except discord.NotFound:
-            await send_embed_notification(
-                interaction,
-                "🎯 მოთამაშე არ მოიძებნა",
-                f"{user.mention} არ არის სერვერზე."
-            )
+            await send_embed_notification(interaction, "🎯 მოთამაშე არ მოიძებნა", f"{user.mention} არ არის მთავარ სერვერზე.")
             return
 
-        access_role = target_guild.get_role(ROLE_ID)
+        access_role = main_guild.get_role(ROLE_ID)
         if not access_role:
-            await send_embed_notification(
-                interaction,
-                "🎖 როლი დაკარგულია",
-                "დარწმუნდით, რომ სერვერზე წვდომის როლი არსებობს"
-            )
+            await send_embed_notification(interaction, "🎖 როლი დაკარგულია", "მთავარ სერვერზე წვდომის როლი ვერ მოიძებნა.")
             return
 
         await target_member.add_roles(access_role)
 
         access_entry = {
             "user_id": target_member.id,
-            "guild_id": target_guild.id,
-            "role_id": access_role.id,
+            "guild_id": int(server_id),  # აქ ინახება რომელ სერვერზე მიენიჭა წვდომა
+            "role_id": ROLE_ID,
             "log_channel_id": LOG_CHANNEL_ID,
             "assigned_by": interaction.user.id,
             "duration": duration,
@@ -918,7 +885,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
 
         log_embed = discord.Embed(
             title="🎖 წვდომა გაცემულია (Pixelas Pracks)",
-            description=f"🛡 **Access Granted to the Squad Member**\nსერვერი: {target_guild.name} ({target_guild.id})",
+            description=f"🛡 **Access Granted to the Squad Member**\nსერვერის ID: `{server_id}`",
             color=discord.Color.gold()
         )
         log_embed.add_field(name="🎮 მოთამაშე", value=f"{target_member.mention} ({target_member.display_name})", inline=False)
@@ -928,7 +895,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         log_embed.set_thumbnail(url=target_member.display_avatar.url)
         log_embed.set_footer(text=f"🎯 Player ID: {target_member.id} | 🗓 Deployment Time")
 
-        log_channel = target_guild.get_channel(LOG_CHANNEL_ID)
+        log_channel = main_guild.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             await log_channel.send(embed=log_embed)
 
@@ -940,17 +907,10 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         )
 
     except discord.Forbidden:
-        await send_embed_notification(
-            interaction,
-            "🚫 წვდომა შეზღუდულია",
-            "🤖 ბოტს არ აქვს საკმარისი უფლებები როლის დასამატებლად"
-        )
+        await send_embed_notification(interaction, "🚫 წვდომა შეზღუდულია", "🤖 ბოტს არ აქვს საკმარისი უფლებები როლის დასამატებლად")
     except Exception as e:
-        await send_embed_notification(
-            interaction,
-            "💥 შეცდომა",
-            f"⚙️ ტექნიკური შეცდომა: `{e}`"
-        )
+        await send_embed_notification(interaction, "💥 შეცდომა", f"⚙️ ტექნიკური შეცდომა: `{e}`")
+        
 
 
 
