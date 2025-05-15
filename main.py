@@ -187,6 +187,7 @@ async def on_message_edit(before, after):
                                 {"guild_id": guild_id},
                                 {"$addToSet": {messages_key: {
                                     "message_id": after.id,
+                                    "user_id": message.author.id,
                                     "content": after.content
                                 }}},
                                 upsert=True
