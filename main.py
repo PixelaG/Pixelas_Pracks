@@ -238,22 +238,17 @@ async def on_message_delete(message):
         
 
 async def check_expired_roles():
-    """შეამოწმებს და ამოიღებს ვადაგასულ როლებს"""
-    await bot.wait_until_ready()
     while True:
         try:
             now = datetime.utcnow()
-            expired_entries = access_entries.find({
-                "expiry_time": {"$lte": now},
-                "is_active": True
-            })
+            expired_entries = list(access_entries.find({"expiry_time": {"$lt": now}}))
 
             for entry in expired_entries:
                 guild = bot.get_guild(entry["guild_id"])
                 if not guild:
-                    access_entries.update_one({"_id": entry["_id"]}, {"$set": {"is_active": False}})
+                    access_entries.delete_one({"_id": entry["_id"]})
                     continue
-
+                
                 try:
                     member = await guild.fetch_member(entry["user_id"])
                     role = guild.get_role(entry["role_id"])
@@ -261,7 +256,7 @@ async def check_expired_roles():
 
                     if role and member and role in member.roles:
                         await member.remove_roles(role)
-
+                        
                         if log_channel:
                             expired_embed = discord.Embed(
                                 title="⏰ დაკარგა წვდომა",
@@ -275,29 +270,30 @@ async def check_expired_roles():
                             )
                             await log_channel.send(embed=expired_embed)
 
-                    # მონიშვნა, რომ წვდომა შეწყდა
-                    access_entries.update_one({"_id": entry["_id"]}, {"$set": {"is_active": False}})
+                    # წაშლა ბაზიდან
+                    access_entries.delete_one({"_id": entry["_id"]})
 
-                    # შემოწმება დარჩენილი აქტიური წვდომები სერვერზე
-                    remaining = access_entries.count_documents({
-                        "guild_id": entry["guild_id"],
-                        "is_active": True
-                    })
+                    # ახლა ვამოწმებთ იგივე `server_id`-ზე კიდევ ვინმე დარჩა?
+                    server_id = entry.get("server_id")
+                    remaining = access_entries.count_documents({"server_id": server_id})
 
                     if remaining == 0:
-                        if log_channel:
-                            leave_embed = discord.Embed(
-                                title="🚪 ბოტი ტოვებს სერვერს",
-                                description="❌ სერვერზე ვერცერთი აქტიური წვდომა აღარ დარჩა.\n🤖 ბოტი ავტომატურად გამოდის...",
-                                color=discord.Color.dark_red()
-                            )
-                            await log_channel.send(embed=leave_embed)
+                        # თუ დარჩა 0 მომხმარებელი იმ server_id-ზე, მაშინ მოძებნე გილდი და დატოვე
+                        guild_to_leave = bot.get_guild(entry["guild_id"])
+                        if guild_to_leave:
+                            if log_channel:
+                                leave_embed = discord.Embed(
+                                    title="🚪 ბოტი ტოვებს სერვერს",
+                                    description=f"❌ სერვერზე {server_id} ვერცერთი წვდომა აღარ დარჩა.\n🤖 ბოტი ავტომატურად გამოდის...",
+                                    color=discord.Color.dark_red()
+                                )
+                                await log_channel.send(embed=leave_embed)
 
-                        await guild.leave()
-                        print(f"🚪 ბოტი გავიდა სერვერიდან: {guild.name} ({guild.id})")
+                            await guild_to_leave.leave()
+                            print(f"🚪 ბოტი გავიდა სერვერიდან: {guild_to_leave.name} ({guild_to_leave.id})")
 
                 except discord.NotFound:
-                    access_entries.update_one({"_id": entry["_id"]}, {"$set": {"is_active": False}})
+                    access_entries.delete_one({"_id": entry["_id"]})
                 except Exception as e:
                     print(f"⚠️ შეცდომა როლის ამოღებისას: {e}")
 
@@ -305,7 +301,6 @@ async def check_expired_roles():
             print(f"🔥 შეცდომა check_expired_roles-ში: {e}")
 
         await asyncio.sleep(300)
-
 
 async def send_embed_notification(interaction, title, description, color=discord.Color(0x2f3136)):
     embed = discord.Embed(title=title, description=description, color=color)
@@ -815,10 +810,10 @@ async def clearlist_00_30(interaction: discord.Interaction):
 @app_commands.describe(
     user="მომხმარებელი, რომელსაც უნდა მიეცეს წვდომა",
     duration="დრო (მაგ. 1d, 5h, 30m)",
-    server_id="სერვერის ID, სადაც წვდომა უნდა მიენიჭოს"
+    server_id="სერვერის ID, სადაც მომხმარებელს აქვს წვდომა"
 )
 @bot.tree.command(name="giveaccess", description="⚔️ მიანიჭეთ წვდომა მებრძოლს (მხოლოდ მფლობელისთვის)")
-async def giveaccess(interaction: discord.Interaction, user: discord.User, duration: str, server_id: str):
+async def giveaccess(interaction: discord.Interaction, user: discord.User, duration: str, server_id: int):
     await bot.wait_until_ready()
 
     BOT_OWNER_ID = 475160980280705024
@@ -830,24 +825,14 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         )
         return
 
-    if not server_id.isdigit():
-        await send_embed_notification(
-            interaction,
-            "❌ არასწორი სერვერის ID",
-            "გთხოვთ მიუთითოთ სწორი სერვერის ID (მხოლოდ ციფრები)."
-        )
+    # სერვერი, სადაც ბრძანება გამოიყენება
+    current_guild = interaction.guild
+    if not current_guild:
+        await send_embed_notification(interaction, "🌐 სერვერი არ არის", "ეს ბრძანება შეგიძლიათ გამოიყენოთ მხოლოდ სერვერზე")
         return
 
-    GUILD_ID = int(server_id)
-
-    target_guild = bot.get_guild(GUILD_ID)
-    if not target_guild:
-        await send_embed_notification(
-            interaction,
-            "❌ არასწორი სერვერი",
-            f"ბოტი არ არის დაკავშირებული სერვერთან ID: {GUILD_ID}"
-        )
-        return
+    ROLE_ID = 1368589143546003587
+    LOG_CHANNEL_ID = 1365381000619622460
 
     try:
         time_unit = duration[-1].lower()
@@ -879,42 +864,32 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         expiry_time = datetime.utcnow() + delta
 
         try:
-            target_member = await target_guild.fetch_member(user.id)
+            target_member = await current_guild.fetch_member(user.id)
         except discord.NotFound:
-            await send_embed_notification(
-                interaction,
-                "🎯 მოთამაშე არ მოიძებნა",
-                f"{user.mention} არ არის სერვერზე."
-            )
+            await send_embed_notification(interaction, "🎯 მოთამაშე არ მოიძებნა", f"{user.mention} არ არის სერვერზე.")
             return
 
-        ROLE_ID = 1368589143546003587
-        LOG_CHANNEL_ID = 1365381000619622460
-        access_role = target_guild.get_role(ROLE_ID)
+        access_role = current_guild.get_role(ROLE_ID)
         if not access_role:
-            await send_embed_notification(
-                interaction,
-                "🎖 როლი დაკარგულია",
-                "დარწმუნდით, რომ წვდომის როლი არსებობს"
-            )
+            await send_embed_notification(interaction, "🎖 როლი დაკარგულია", "დარწმუნდით, რომ წვდომის როლი არსებობს სერვერზე")
             return
 
         await target_member.add_roles(access_role)
 
         access_entry = {
             "user_id": target_member.id,
-            "guild_id": target_guild.id,
+            "guild_id": current_guild.id,
             "role_id": access_role.id,
             "log_channel_id": LOG_CHANNEL_ID,
             "assigned_by": interaction.user.id,
             "duration": duration,
             "assigned_at": datetime.utcnow(),
             "expiry_time": expiry_time,
-            "is_active": True
+            "is_active": True,
+            "server_id": server_id  # აქ შენ ინახავ არგუმენტად მოწოდებულ სერვერის ID-ს
         }
         access_entries.insert_one(access_entry)
 
-        # ლოგის გაგზავნა
         log_embed = discord.Embed(
             title="🎖 წვდომა გაცემულია (Pixelas Pracks)",
             description="🛡 **Access Granted to the Squad Member**",
@@ -927,7 +902,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         log_embed.set_thumbnail(url=target_member.display_avatar.url)
         log_embed.set_footer(text=f"🎯 Player ID: {target_member.id} | 🗓 Deployment Time")
 
-        log_channel = target_guild.get_channel(LOG_CHANNEL_ID)
+        log_channel = current_guild.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             await log_channel.send(embed=log_embed)
 
@@ -939,17 +914,9 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         )
 
     except discord.Forbidden:
-        await send_embed_notification(
-            interaction,
-            "🚫 წვდომა შეზღუდულია",
-            "🤖 ბოტს არ აქვს საკმარისი უფლებები როლის დასამატებლად"
-        )
+        await send_embed_notification(interaction, "🚫 წვდომა შეზღუდულია", "🤖 ბოტს არ აქვს საკმარისი უფლებები როლის დასამატებლად")
     except Exception as e:
-        await send_embed_notification(
-            interaction,
-            "💥 შეცდომა",
-            f"⚙️ ტექნიკური შეცდომა: {e}"
-        )
+        await send_embed_notification(interaction, "💥 შეცდომა", f"⚙️ ტექნიკური შეცდომა: {e}")
 
 @bot.tree.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან")
 @app_commands.describe(message_id="შეტყობინების ID")
