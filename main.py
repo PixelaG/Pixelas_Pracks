@@ -809,7 +809,7 @@ async def clearlist_00_30(interaction: discord.Interaction):
     server_id="სერვერის ID, სადაც უნდა მიეცეს წვდომა"
 )
 @bot.tree.command(name="giveaccess", description="⚔️ მიანიჭეთ წვდომა მებრძოლს (მხოლოდ მფლობელისთვის)")
-async def giveaccess(interaction: discord.Interaction, user: discord.User, duration: str, server_id: int):
+async def giveaccess(interaction: discord.Interaction, user: discord.User, duration: str, server_id: str):
     await bot.wait_until_ready()
 
     BOT_OWNER_ID = 475160980280705024
@@ -821,15 +821,38 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         )
         return
 
-    # ამოწმებს, რომ ბრძანება იმ სერვერზეა გაცემული, რაც პარამეტრად მოვიდა
-    if interaction.guild is None or interaction.guild.id != server_id:
+    # გადაამოწმე რომ server_id ციფრებია და გადავყავი int-ში
+    try:
+        server_id_int = int(server_id)
+    except ValueError:
         await send_embed_notification(
             interaction,
-            "❌ არასწორი სერვერი",
-            f"ბრძანება შეგიძლიათ გამოიყენოთ მხოლოდ სერვერზე ID: {server_id}"
+            "❌ არასწორი სერვერის ID",
+            "გთხოვთ მიუთითოთ სერვერის ID ციფრებით, მაგ: 1005186618031869952"
         )
         return
 
+    # ამოიღე სერვერი, სადაც ბრძანება ჩაიტარდა
+    if interaction.guild is None:
+        await send_embed_notification(
+            interaction,
+            "❌ სერვერი არ მოიძებნა",
+            "ბრძანება შეგიძლიათ გამოიყენოთ მხოლოდ სერვერზე."
+        )
+        return
+
+    if interaction.guild.id != server_id_int:
+        await send_embed_notification(
+            interaction,
+            "❌ არასწორი სერვერი",
+            f"ბრძანება შეგიძლიათ გამოიყენოთ მხოლოდ სერვერზე ID: {server_id_int}"
+        )
+        return
+
+    ROLE_ID = 1368589143546003587
+    LOG_CHANNEL_ID = 1365381000619622460
+
+    # დროის ფორმატის გადამოწმება და expiry_time-ის გაბანდება
     try:
         time_unit = duration[-1].lower()
         time_value = duration[:-1]
@@ -859,26 +882,32 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
 
         expiry_time = datetime.utcnow() + delta
 
-        target_guild = bot.get_guild(server_id)
+        target_guild = bot.get_guild(server_id_int)
         if not target_guild:
-            await send_embed_notification(interaction, "🌐 სერვერი არ მოიძებნა", "დარწმუნდით, რომ ბოტი დაკავშირებულია სერვერთან")
+            await send_embed_notification(
+                interaction,
+                "🌐 სერვერი არ მოიძებნა",
+                "დარწმუნდით, რომ ბოტი დაკავშირებულია სერვერთან"
+            )
             return
 
         try:
             target_member = await target_guild.fetch_member(user.id)
         except discord.NotFound:
-            await send_embed_notification(interaction, "🎯 მოთამაშე არ მოიძებნა", f"{user.mention} არ არის სერვერში.")
+            await send_embed_notification(
+                interaction,
+                "🎯 მოთამაშე არ მოიძებნა",
+                f"{user.mention} არ არის ბაზაში."
+            )
             return
 
-        # აქ უნდა დააყენო შენი წვდომის როლი შესაბამისი სერვერისთვის
-        # შეგიძლია გამოიყენო MongoDB ან ფიქსირებული ID, თუ როლები იცვლება სერვერებზე
-        # აქ მე ვიფიქრე, რომ როლის ID უნდა იყოს ცვლადი, მაგალითისთვის:
-        access_role_id = 1368589143546003587  # შეცვალე საჭირო ID-ზე
-        log_channel_id = 1365381000619622460  # შეცვალე საჭირო ID-ზე
-
-        access_role = target_guild.get_role(access_role_id)
+        access_role = target_guild.get_role(ROLE_ID)
         if not access_role:
-            await send_embed_notification(interaction, "🎖 როლი დაკარგულია", "დარწმუნდით, რომ წვდომის როლი არსებობს")
+            await send_embed_notification(
+                interaction,
+                "🎖 როლი დაკარგულია",
+                "დარწმუნდით, რომ წვდომის როლი არსებობს"
+            )
             return
 
         await target_member.add_roles(access_role)
@@ -887,7 +916,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
             "user_id": target_member.id,
             "guild_id": target_guild.id,
             "role_id": access_role.id,
-            "log_channel_id": log_channel_id,
+            "log_channel_id": LOG_CHANNEL_ID,
             "assigned_by": interaction.user.id,
             "duration": duration,
             "assigned_at": datetime.utcnow(),
@@ -897,7 +926,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         access_entries.insert_one(access_entry)
 
         log_embed = discord.Embed(
-            title="🎖 წვდომა გაცემულია",
+            title="🎖 წვდომა გაცემულია (Pixelas Pracks)",
             description="🛡 **Access Granted to the Squad Member**",
             color=discord.Color.gold()
         )
@@ -908,7 +937,7 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         log_embed.set_thumbnail(url=target_member.display_avatar.url)
         log_embed.set_footer(text=f"🎯 Player ID: {target_member.id} | 🗓 Deployment Time")
 
-        log_channel = target_guild.get_channel(log_channel_id)
+        log_channel = target_guild.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             await log_channel.send(embed=log_embed)
 
@@ -920,9 +949,17 @@ async def giveaccess(interaction: discord.Interaction, user: discord.User, durat
         )
 
     except discord.Forbidden:
-        await send_embed_notification(interaction, "🚫 წვდომა შეზღუდულია", "🤖 ბოტს არ აქვს საკმარისი უფლებები როლის დასამატებლად")
+        await send_embed_notification(
+            interaction,
+            "🚫 წვდომა შეზღუდულია",
+            "🤖 ბოტს არ აქვს საკმარისი უფლებები როლის დასამატებლად"
+        )
     except Exception as e:
-        await send_embed_notification(interaction, "💥 შეცდომა", f"⚙️ ტექნიკური შეცდომა: {e}")
+        await send_embed_notification(
+            interaction,
+            "💥 შეცდომა",
+            f"⚙️ ტექნიკური შეცდომა: {e}"
+        )
 
 
 @bot.tree.command(name="unlist", description="ამოიღებს მითითებულ ID-ს Team List-დან")
