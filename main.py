@@ -1078,6 +1078,15 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font = ImageFont.truetype(font_path, font_size)
     return font
 
+
+def get_vertical_text_offset(font):
+    ascent, descent = font.getmetrics()
+    # ტექსტის სრული სიმაღლე
+    height = ascent + descent
+    # ასცენდერი ფაქტიურად ტექსტის ზედა ცალკეული ნაწილი; თუ დაიყვანო ცენტრში,
+    # offset-ის გამოყენებით შეგვიძლია ზუსტად ჩავსწოროთ y-ს პოზიცია
+    return ascent - height // 2
+
 @bot.command()
 async def getresult(ctx):
     try:
@@ -1107,10 +1116,8 @@ async def getresult(ctx):
         start_y = 290
         row_height = 51
 
-        # ჩარჩოს მარცხენა და მარჯვენა პოზიციები TeamName-ისთვის (იოსფერი ჩარჩო)
-        left_bound = 150   # მარცხენა საზღვარი (იზომე ზუსტად ჩარჩოდან)
-        right_bound = 720  # მარჯვენა საზღვარი ჩარჩოს
-
+        left_bound = 150
+        right_bound = 720
         max_teamname_width = right_bound - left_bound
 
         kills_x = 775
@@ -1123,15 +1130,16 @@ async def getresult(ctx):
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # ფონტის ზომის დაპატარავება, თუ ტექსტი დიდია
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
 
-            # TeamName იწყება ჩარჩოს მარცხენა პოზიციიდან
+            vertical_offset = get_vertical_text_offset(font_team)
+            adjusted_y = y + vertical_offset
+
             team_x = left_bound
 
-            draw.text((team_x, y), team_name, font=font_team, fill="white")
-            draw.text((kills_x, y), kills, font=font_default, fill="black")
-            draw.text((total_x, y), total, font=font_default, fill="black")
+            draw.text((team_x, adjusted_y), team_name, font=font_team, fill="white")
+            draw.text((kills_x, adjusted_y), kills, font=font_default, fill="black")
+            draw.text((total_x, adjusted_y), total, font=font_default, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
