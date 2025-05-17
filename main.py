@@ -1069,68 +1069,50 @@ async def createresult(ctx, *args):
         
 
 # !getresult - ყველა გუნდის შედეგის ჩვენება
-@bot.command(name="getresult")
-async def get_result(ctx):
-    results = list(teams_collection.find({}))  # MongoDB-ში შენახული გუნდების სია
-
-    if not results:
-        await ctx.send("ჯერ არ არის დამატებული შედეგები.")
-        return
-
-    # სურათის ზომები
-    width = 800
-    height = 60 + 40 * len(results)
-
-    # ახალი სურათი
-    image = Image.new("RGB", (width, height), (30, 30, 30))
-    draw = ImageDraw.Draw(image)
-
-    # ფონტები
+@bot.command()
+async def getresult(ctx):
     try:
-        font = ImageFont.truetype("arial.ttf", 24)
-        title_font = ImageFont.truetype("arial.ttf", 28)
-    except:
-        font = ImageFont.load_default()
-        title_font = ImageFont.load_default()
+        guild_id = ctx.guild.id
+        print(f"[DEBUG] გატანილი guild_id: {guild_id}")
 
-    # სათაური
-    draw.text((10, 10), "Team Results", font=title_font, fill=(255, 255, 255))
+        # მოძებნე ყველა გუნდი შესაბამისი სერვერისთვის
+        teams = list(teams_collection.find({"guild_id": guild_id}))
 
-    y = 60
-    for team in results:
-        team_name = team.get("TeamName", "Unknown")
-        place = team.get("Place", "N/A")
-        kills = int(team.get("Kills", 0))
+        if not teams:
+            await ctx.send("❌ მონაცემები არ მოიძებნა ამ სერვერზე.")
+            return
 
-        # ქულების ლოგიკა (შეიძლება შეცვალო)
-        place_points = {
-            "1st": 10,
-            "2nd": 8,
-            "3rd": 6,
-            "4th": 5,
-            "5th": 4,
-            "6th": 3,
-            "7th": 2,
-            "8th": 1
-        }
-        base_points = place_points.get(place, 0)
-        total_points = base_points + kills
+        print(f"[DEBUG] ნაპოვნია გუნდების რაოდენობა: {len(teams)}")
 
-        # დახატე შედეგი
-        draw.text((10, y), f"{team_name}", font=font, fill=(255, 255, 0))
-        draw.text((250, y), f"{place}", font=font, fill=(255, 255, 255))
-        draw.text((400, y), f"Kills: {kills}", font=font, fill=(200, 200, 255))
-        draw.text((550, y), f"Points: {total_points}", font=font, fill=(0, 255, 0))
+        # აარჩიე საუკეთესო ქულებით და დაბლა დაწერე სურათზე
+        teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)
 
-        y += 40
+        # შექმენი სუფთა სურათი, ზომა ცხრილის მიხედვით შეიძლება შეცვალო
+        width, height = 600, 50 + len(teams)*40
+        image = Image.new("RGB", (width, height), color=(255, 255, 255))
+        draw = ImageDraw.Draw(image)
 
-    # სურათის გადაყვანა ბაიტებში
-    image_bytes = io.BytesIO()
-    image.save(image_bytes, format='PNG')
-    image_bytes.seek(0)
+        # გამოიყენე შესაბამისი ფონტი და ზომა
+        font = ImageFont.truetype("arial.ttf", size=30)  # ან შენი შრიფტი და პასის სწორად მიუთითე
 
-    # გაგზავნა Discord-ში
-    await ctx.send(file=discord.File(fp=image_bytes, filename="results.png"))
+        y_text = 20
+        for team in teams:
+            line = f"{team.get('team_name', 'Unknown')} – {team.get('points', 0)} ქულა – {team.get('eliminations', 0)} მკვლელობა"
+            print(f"[DEBUG] წერია სურათზე: {line}")
+            draw.text((20, y_text), line, font=font, fill="black")
+            y_text += 40
+
+        # გამოამუშავე სურათი ბაიტებში Discord-ისთვის
+        with io.BytesIO() as image_binary:
+            image.save(image_binary, "PNG")
+            image_binary.seek(0)
+            file = discord.File(fp=image_binary, filename="result.png")
+
+            await ctx.send(file=file)
+
+    except Exception as e:
+        print(f"[ERROR] getresult: {e}")
+        await ctx.send(f"❌ მოხდა შეცდომა: {e}")
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
@@ -1139,7 +1121,7 @@ async def resultclear(ctx):
     if not member:
         return
 
-    collection.delete_many({})
+    teams_collection.delete_many({})
     await ctx.send("🗑️ ყველა შედეგი წაიშალა.")
 
 
