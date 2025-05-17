@@ -1116,27 +1116,20 @@ async def getresult(ctx):
         start_y = 290
         row_height = 51
 
-        # TeamName max allowed width and left X coordinate inside the box
-        max_teamname_width = 570
-        teamname_x = 80  # მარცხენა შიდა მარგინალი ჩარჩოში (ცვლადი შეგიძლია შეცვალო)
-
+        teamname_x = 110  # მარცხნივ დაშორება ჩარჩოს
         kills_x = 775
         total_x = 883
 
         for index, team in enumerate(teams):
-            y = start_y + index * row_height  # უკვე anchor=lm-ის გამო ზუსტად შუაში დგას
+            y = start_y + index * row_height + 5  # ქვემოთ გადმოტანა 5 პიქსელი
 
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # ფონტის ზომის დაპატარავება თუ დიდი ტექსტია
-            font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
+            font_team = adjust_font_size(team_name, font_path, 570, 30)
 
-            # TeamName მარცხნივ გასწევა, anchor=lm-ით სიმაღლეში ზუსტად შუაში დგას
             draw.text((teamname_x, y), team_name, font=font_team, fill="white", anchor="lm")
-
-            # kills და total - ჩარჩოს მარცხენა მხარისგან დგას და სიმაღლეში შუაში
             draw.text((kills_x, y), kills, font=font_default, fill="black", anchor="lm")
             draw.text((total_x, y), total, font=font_default, fill="black", anchor="lm")
 
