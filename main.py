@@ -12,6 +12,7 @@ from colorama import init, Fore
 from datetime import datetime, timedelta
 from pymongo import MongoClient 
 from PIL import ImageFont, ImageDraw, Image
+import requests
 import io
 
 load_dotenv()
@@ -1081,43 +1082,51 @@ async def getresult(ctx):
     try:
         guild_id = ctx.guild.id
         teams = list(teams_collection.find({"guild_id": guild_id}))
-
         if not teams:
             await ctx.send("❌ მონაცემები არ მოიძებნა ამ სერვერზე.")
             return
 
-        # ქულების მიხედვით დალაგება
+        # სორტირება ქულების მიხედვით კლებადობით
         teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)
 
-        # ჩატვირთე შენი template
-        background = Image.open("template.png").convert("RGBA")
-        draw = ImageDraw.Draw(background)
-        
-        # გამოიყენე შესაბამისი შრიფტი
-        font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
+        # ჩატვირთე ფონი ინტერნეტიდან
+        img_url = "https://i.imgur.com/ZnCFtPG.png"
+        response = requests.get(img_url)
+        base_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
+        draw = ImageDraw.Draw(base_image)
 
-        # Y პოზიცია პირველ გუნდზე და Y-ს ცვლადი ყოველი გუნდისთვის
-        start_y = 215
-        line_height = 44
+        # შრიფტი: Arial ან fallback
+        try:
+            font = ImageFont.truetype("arial.ttf", size=24)
+        except:
+            font = ImageFont.load_default()
 
-        for i, team in enumerate(teams[:12]):  # max 12 გუნდი
-            y = start_y + i * line_height
-            draw.text((75, y), f"{i+1:02}", font=font, fill="black")
-            draw.text((150, y), team.get("team_name", ""), font=font, fill="black")
-            draw.text((445, y), f"{team.get('matches_played', '00')}", font=font, fill="black")
-            draw.text((515, y), f"{team.get('wins', '00')}", font=font, fill="black")
-            draw.text((585, y), f"{team.get('position_points', '00')}", font=font, fill="black")
-            draw.text((655, y), f"{team.get('eliminations', '00')}", font=font, fill="black")
-            draw.text((725, y), f"{team.get('points', '00')}", font=font, fill="black")
+        # ტექსტის ადგილმდებარეობის პარამეტრები
+        start_y = 160       # სად იწყება პირველი გუნდის ადგილი
+        line_height = 43    # დაშორება გუნდებს შორის
+        x_team = 135        # TeamName-ის X პოზიცია
+        x_kills = 480       # Kills-ის X პოზიცია
+        x_points = 580      # TOTAL-ის X პოზიცია
 
-        # ბაიტებში გადაყვანა და გაგზავნა
+        for idx, team in enumerate(teams[:12]):
+            team_name = team.get("team_name", "Unknown")
+            kills = team.get("eliminations", 0)
+            points = team.get("points", 0)
+            y = start_y + idx * line_height
+
+            # დაწერე ტექსტები შესაბამის ადგილებზე
+            draw.text((x_team, y), str(team_name), font=font, fill="white")
+            draw.text((x_kills, y), str(kills).zfill(2), font=font, fill="black")
+            draw.text((x_points, y), str(points).zfill(2), font=font, fill="black")
+
+        # გააგზავნე სურათი
         with io.BytesIO() as image_binary:
-            background.save(image_binary, 'PNG')
+            base_image.save(image_binary, "PNG")
             image_binary.seek(0)
             await ctx.send(file=discord.File(fp=image_binary, filename="result.png"))
 
     except Exception as e:
+        print(f"[ERROR] getresult: {e}")
         await ctx.send(f"❌ მოხდა შეცდომა: {e}")
 
 
