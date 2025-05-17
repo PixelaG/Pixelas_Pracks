@@ -1111,9 +1111,9 @@ async def getresult(ctx):
             kills = team.get("eliminations", 0)
             total = team.get("points", 0)
 
-            draw.text((90, y), str(team_name), font=font, fill="black")
-            draw.text((505, y), str(kills), font=font, fill="black")
-            draw.text((710, y), str(total), font=font, fill="black")
+            draw.text((160, y), str(team_name), font=font, fill="black")  # TEAM NAME
+            draw.text((595, y), str(kills), font=font, fill="black")      # KILLS
+            draw.text((695, y), str(total), font=font, fill="black")      # TOTAL
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
