@@ -1107,32 +1107,32 @@ async def getresult(ctx):
         start_y = 290
         row_height = 51
 
-        # TeamName max allowed width and the center X coordinate of the area
+        # TeamName სვეტის პარამეტრები
         max_teamname_width = 570
-        center_team_x = 250
+        center_team_x = 250  # შუა წერტილი მარცხენა ჩარჩოში
 
         kills_x = 775
         total_x = 883
 
         for index, team in enumerate(teams):
-            center_y = start_y + index * row_height
+            center_y = start_y + index * row_height  # თითო მწკრივის ცენტრი
 
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # TeamName font & positioning
+            # TeamName-ის ფონტი და განლაგება
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
-            text_width = font_team.getlength(team_name)
-            bbox_team = font_team.getbbox(team_name)
-            text_height_team = bbox_team[3] - bbox_team[1]
-            team_x = center_team_x - (text_width / 2)
-            team_y = center_y - (text_height_team / 2)
+            team_text_width = font_team.getlength(team_name)
+            team_bbox = font_team.getbbox(team_name)
+            team_text_height = team_bbox[3] - team_bbox[1]
+            team_x = center_team_x - (team_text_width / 2)
+            team_y = center_y - (team_text_height / 2) + 2  # +2 რომ იდელურად ჩაჯდეს
 
-            # Kills & Total vertical centering
+            # Kills/Total-ის განლაგება
             bbox_default = font_default.getbbox("Test")
-            text_height_default = bbox_default[3] - bbox_default[1]
-            other_y = center_y - (text_height_default / 2)
+            other_text_height = bbox_default[3] - bbox_default[1]
+            other_y = center_y - (other_text_height / 2) + 2  # +2 იგივე წესი
 
             draw.text((team_x, team_y), team_name, font=font_team, fill="white")
             draw.text((kills_x, other_y), kills, font=font_default, fill="black")
