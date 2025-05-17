@@ -1073,6 +1073,16 @@ async def createresult(ctx, *args):
 def load_custom_font(path="fonts/BebasNeue-Regular.ttf", size=30):
     return ImageFont.truetype(path, size=size)
 
+
+def adjust_font_size(text, font_path, max_width, initial_size):
+    font_size = initial_size
+    font = ImageFont.truetype(font_path, font_size)
+    while font.getlength(text) > max_width and font_size > 10:
+        font_size -= 1
+        font = ImageFont.truetype(font_path, font_size)
+    return font
+
+
 @bot.command()
 async def getresult(ctx):
     try:
@@ -1096,20 +1106,27 @@ async def getresult(ctx):
         base_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
         draw = ImageDraw.Draw(base_image)
 
-        font = load_custom_font(size=30)
+        font_path = "fonts/BebasNeue-Regular.ttf"
+        font_default = ImageFont.truetype(font_path, size=30)
 
-        # კოორდინატები
-        team_x, kills_x, total_x = 170, 775, 883
+        team_x, kills_x, total_x = 190, 775, 883  # ცოტათი მარჯვნივ გაწეული TeamName
         start_y = 290
         row_height = 51
+        max_teamname_width = 570  # მაქსიმალური დაშვებული სიგანე TeamName-სთვის
 
         for index, team in enumerate(teams):
-            y = start_y + index * row_height
+            y = start_y + index * row_height - 3
 
-            # 🠕 აწეულია -3 პიქსელით
-            draw.text((team_x, y - 3), str(team.get("team_name", "Unknown")), font=font, fill="white")
-            draw.text((kills_x, y - 3), str(team.get("eliminations", 0)), font=font, fill="black")
-            draw.text((total_x, y - 3), str(team.get("points", 0)), font=font, fill="black")
+            team_name = str(team.get("team_name", "Unknown"))
+            kills = str(team.get("eliminations", 0))
+            total = str(team.get("points", 0))
+
+            # TeamName-სთვის ავტომატური დაპატარავება
+            font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
+
+            draw.text((team_x, y), team_name, font=font_team, fill="white")
+            draw.text((kills_x, y), kills, font=font_default, fill="black")
+            draw.text((total_x, y), total, font=font_default, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
