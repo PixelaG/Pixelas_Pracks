@@ -1102,7 +1102,7 @@ async def getresult(ctx):
         font = load_font(26)
 
         # შენ მიერ მოწოდებული ზუსტი კოორდინატები:
-        team_x, kills_x, total_x = 198, 779, 880
+        team_x, kills_x, total_x = 190, 775, 886
         start_y = 290
         row_height = 51
 
@@ -1113,7 +1113,7 @@ async def getresult(ctx):
             kills = team.get("eliminations", 0)
             total = team.get("points", 0)
 
-            draw.text((team_x, y), str(team_name), font=font, fill="black")
+            draw.text((team_x, y - 5), str(team_name), font=font, fill="black")
             draw.text((kills_x, y), str(kills), font=font, fill="black")
             draw.text((total_x, y), str(total), font=font, fill="black")
 
