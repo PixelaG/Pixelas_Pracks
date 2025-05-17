@@ -11,6 +11,8 @@ from threading import Thread
 from colorama import init, Fore
 from datetime import datetime, timedelta
 from pymongo import MongoClient 
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 load_dotenv()
 
@@ -1068,65 +1070,68 @@ async def createresult(ctx, *args):
         
 
 # !getresult - ყველა გუნდის შედეგის ჩვენება
-@bot.command()
-async def getresult(ctx):
-    member = await check_user_permissions_for_ctx(ctx, 1368589143546003587, 1005186618031869952)
-    if not member:
+@bot.command(name="getresult")
+async def get_result(ctx):
+    results = list(teams_collection.find({}))  # MongoDB-ში შენახული გუნდების სია
+
+    if not results:
+        await ctx.send("ჯერ არ არის დამატებული შედეგები.")
         return
 
-    guild_id = ctx.guild.id  # ✅ გამოვითხოვთ სერვერის ID-ს
+    # სურათის ზომები
+    width = 800
+    height = 60 + 40 * len(results)
 
-    pipeline = [
-        {
-            "$match": {"guild_id": guild_id}  # ✅ მხოლოდ ამ სერვერის მონაცემები
-        },
-        {
-            "$group": {
-                "_id": "$team_name",
-                "total_points": {"$sum": "$points"},
-                "total_eliminations": {"$sum": "$eliminations"}
-            }
-        },
-        {
-            "$sort": {"total_points": -1}
+    # ახალი სურათი
+    image = Image.new("RGB", (width, height), (30, 30, 30))
+    draw = ImageDraw.Draw(image)
+
+    # ფონტები
+    try:
+        font = ImageFont.truetype("arial.ttf", 24)
+        title_font = ImageFont.truetype("arial.ttf", 28)
+    except:
+        font = ImageFont.load_default()
+        title_font = ImageFont.load_default()
+
+    # სათაური
+    draw.text((10, 10), "Team Results", font=title_font, fill=(255, 255, 255))
+
+    y = 60
+    for team in results:
+        team_name = team.get("TeamName", "Unknown")
+        place = team.get("Place", "N/A")
+        kills = int(team.get("Kills", 0))
+
+        # ქულების ლოგიკა (შეიძლება შეცვალო)
+        place_points = {
+            "1st": 10,
+            "2nd": 8,
+            "3rd": 6,
+            "4th": 5,
+            "5th": 4,
+            "6th": 3,
+            "7th": 2,
+            "8th": 1
         }
-    ]
+        base_points = place_points.get(place, 0)
+        total_points = base_points + kills
 
-    grouped_results = list(collection.aggregate(pipeline))
+        # დახატე შედეგი
+        draw.text((10, y), f"{team_name}", font=font, fill=(255, 255, 0))
+        draw.text((250, y), f"{place}", font=font, fill=(255, 255, 255))
+        draw.text((400, y), f"Kills: {kills}", font=font, fill=(200, 200, 255))
+        draw.text((550, y), f"Points: {total_points}", font=font, fill=(0, 255, 0))
 
-    if not grouped_results:
-        await ctx.send("📭 შედეგები არ არის.")
-        return
+        y += 40
 
-    winner = grouped_results[0]['_id']
+    # სურათის გადაყვანა ბაიტებში
+    image_bytes = io.BytesIO()
+    image.save(image_bytes, format='PNG')
+    image_bytes.seek(0)
 
-    embed = discord.Embed(
-        title="📢 შედეგები!",
-        description=(
-            f"__**{winner}**__ -ს ვულოცავთ დამსახურებულ გამარჯვებას! 🏆\n\n"
-            f"დანარჩენ კლანებს გისურვებთ წარმატებას. 💪\n"
-            f"დაგვიტოვეთ პატარა შეფასება 💬\n\n"
-            f"**📊 ტოპ 12 გუნდის შედეგები:**"
-        ),
-        color=discord.Color.gold()
-    )
-
-    medals = ["🥇", "🥈", "🥉"]
-
-    for idx, r in enumerate(grouped_results[:12], start=1):
-        team = r['_id']
-        total_points = r['total_points']
-        kills = r['total_eliminations']
-        place = medals[idx - 1] if idx <= 3 else f"#{idx}"
-        embed.add_field(
-            name=f"{place} - {team}",
-            value=f"🔫 **მკვლელობები**: {kills} | 🏅 **ქულები**: {total_points}",
-            inline=False
-        )
-
-    embed.set_footer(text="Result - შექ PIXELAS PRACKS 💻")
-    await ctx.send("|| @everyone ||")
-    await ctx.send(embed=embed)
+    # გაგზავნა Discord-ში
+    await ctx.send(file=discord.File(fp=image_bytes, filename="results.png"))
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
