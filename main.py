@@ -1109,7 +1109,7 @@ async def getresult(ctx):
 
         # TeamName max allowed width and the center X coordinate of the area
         max_teamname_width = 570
-        center_team_x = 460  # (start + end)/2 roughly, შენ ადგე გაშლილი შუა
+        center_team_x = 420  # (start + end)/2 roughly, შენ ადგე გაშლილი შუა
 
         kills_x = 775
         total_x = 883
