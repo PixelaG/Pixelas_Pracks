@@ -1070,19 +1070,10 @@ async def createresult(ctx, *args):
         
 
 
-def adjust_font_size(text, font_path, max_width, initial_size):
-    font_size = initial_size
-    font = ImageFont.truetype(font_path, font_size)
-    while font.getlength(text) > max_width and font_size > 10:
-        font_size -= 1
-        font = ImageFont.truetype(font_path, font_size)
-    return font
-
-def get_text_center_y(font, text, center_y):
-    ascent, descent = font.getmetrics()
-    (offset_x, offset_y, width, height) = font.getbbox(text)
-    text_height = ascent + descent
-    return center_y - text_height // 2 + offset_y
+def get_centered_y(draw, text, font, center_y):
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_height = bbox[3] - bbox[1]
+    return center_y - text_height // 2
 
 @bot.command()
 async def getresult(ctx):
@@ -1110,6 +1101,19 @@ async def getresult(ctx):
         font_path = "fonts/BebasNeue-Regular.ttf"
         font_default = ImageFont.truetype(font_path, size=30)
 
+        def adjust_font_size(text, font_path, max_width, initial_size):
+            font_size = initial_size
+            font = ImageFont.truetype(font_path, font_size)
+            while font.getlength(text) > max_width and font_size > 10:
+                font_size -= 1
+                font = ImageFont.truetype(font_path, font_size)
+            return font
+
+        def get_centered_y(draw, text, font, center_y):
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_height = bbox[3] - bbox[1]
+            return center_y - text_height // 2
+
         start_y = 290
         row_height = 51
 
@@ -1125,19 +1129,16 @@ async def getresult(ctx):
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # TeamName
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
             team_text_width = font_team.getlength(team_name)
             team_x = center_team_x - (team_text_width / 2)
-            team_y = get_text_center_y(font_team, team_name, center_y)
+            team_y = get_centered_y(draw, team_name, font_team, center_y)
             draw.text((team_x, team_y), team_name, font=font_team, fill="white")
 
-            # Kills
-            kills_y = get_text_center_y(font_default, kills, center_y)
+            kills_y = get_centered_y(draw, kills, font_default, center_y)
             draw.text((kills_x, kills_y), kills, font=font_default, fill="black")
 
-            # Total
-            total_y = get_text_center_y(font_default, total, center_y)
+            total_y = get_centered_y(draw, total, font_default, center_y)
             draw.text((total_x, total_y), total, font=font_default, fill="black")
 
         with io.BytesIO() as image_binary:
