@@ -1104,6 +1104,10 @@ async def getresult(ctx):
         start_y = 250
         row_height = 51
 
+        team_x = 160
+        kills_x = 540
+        total_x = 660
+
         for index, team in enumerate(teams):
             y = start_y + index * row_height
 
@@ -1111,9 +1115,9 @@ async def getresult(ctx):
             kills = team.get("eliminations", 0)
             total = team.get("points", 0)
 
-            draw.text((160, y), str(team_name), font=font, fill="black")  # TEAM NAME
-            draw.text((595, y), str(kills), font=font, fill="black")      # KILLS
-            draw.text((695, y), str(total), font=font, fill="black")      # TOTAL
+            draw.text((team_x, y), str(team_name), font=font, fill="black", anchor="lm")   # TeamName - left middle aligned
+            draw.text((kills_x, y), str(kills), font=font, fill="black", anchor="mm")      # Kills - center middle aligned
+            draw.text((total_x, y), str(total), font=font, fill="black", anchor="mm")      # Total - center middle aligned
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
