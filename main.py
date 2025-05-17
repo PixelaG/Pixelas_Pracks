@@ -1070,7 +1070,7 @@ async def createresult(ctx, *args):
         
 
 
-def load_font(size=30):
+def load_font(size=35):
     try:
         return ImageFont.truetype("arial.ttf", size=size)
     except OSError:
@@ -1099,7 +1099,7 @@ async def getresult(ctx):
         base_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
         draw = ImageDraw.Draw(base_image)
 
-        font = load_font(26)
+        font = load_font(35)
 
         # შენ მიერ მოწოდებული ზუსტი კოორდინატები:
         team_x, kills_x, total_x = 170, 775, 883
@@ -1113,7 +1113,7 @@ async def getresult(ctx):
             kills = team.get("eliminations", 0)
             total = team.get("points", 0)
 
-            draw.text((team_x, y - 2), str(team_name), font=font, fill="black")
+            draw.text((team_x, y - 2), str(team_name), font=font, fill="white")
             draw.text((kills_x, y - 3), str(kills), font=font, fill="black")
             draw.text((total_x, y - 3), str(total), font=font, fill="black")
 
