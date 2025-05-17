@@ -40,7 +40,6 @@ client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
-collection = db["teams"]
 teams_collection = db["Teams"]
 
 
@@ -1040,7 +1039,7 @@ async def createresult(ctx, *args):
             points = calculate_points(place, eliminations)
 
             guild_id = ctx.guild.id  # თითოეული სერვერის guild_id
-            existing = collection.find_one({"guild_id": guild_id, "team_name": team_name})
+            existing = teams_collection.find_one({"guild_id": guild_id, "team_name": team_name})
 
             if existing:
                 # უკვე არსებობს — ვაკეთებთ მხოლოდ ქულების და მკვლელობების განახლებას
