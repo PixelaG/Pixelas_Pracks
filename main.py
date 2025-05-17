@@ -1078,6 +1078,11 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font = ImageFont.truetype(font_path, font_size)
     return font
 
+def get_centered_y(row_top, row_height, font, text):
+    bbox = font.getbbox(text)
+    text_height = bbox[3] - bbox[1]
+    return row_top + (row_height - text_height) // 2
+
 @bot.command()
 async def getresult(ctx):
     try:
@@ -1088,10 +1093,8 @@ async def getresult(ctx):
             await ctx.send("❌ მონაცემები არ მოიძებნა ამ სერვერზე.")
             return
 
-        # Sort and limit to top 12
         teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)[:12]
 
-        # Load base image
         img_url = "https://i.imgur.com/ZnCFtPG.png"
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(img_url, headers=headers)
@@ -1103,33 +1106,33 @@ async def getresult(ctx):
         base_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
         draw = ImageDraw.Draw(base_image)
 
-        # Fonts
         font_path = "fonts/BebasNeue-Regular.ttf"
         font_default = ImageFont.truetype(font_path, size=30)
 
-        # Position settings
-        start_y = 290
-        row_height = 50
+        # თითოეული ჩარჩოს ზედა ნაწილი
+        row_tops = [
+            290, 340, 390, 440, 490, 540,
+            590, 640, 690, 740, 790, 840
+        ]
+        row_height = 40
 
         max_teamname_width = 570
-        center_team_x = 250  # Text center for team name
+        center_team_x = 250
         kills_x = 775
         total_x = 883
 
         for index, team in enumerate(teams):
-            # Adjust vertical position slightly downward
-            y = start_y + index * row_height + 6
-
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # Resize font if team name is too wide
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
             text_width = font_team.getlength(team_name)
+
+            # გაანგარიშება ტექსტის პოზიციის ზუსტი Y ჩასმისთვის
+            y = get_centered_y(row_tops[index], row_height, font_team, team_name)
             team_x = center_team_x - (text_width / 2)
 
-            # Draw the texts
             draw.text((team_x, y), team_name, font=font_team, fill="white")
             draw.text((kills_x, y), kills, font=font_default, fill="black")
             draw.text((total_x, y), total, font=font_default, fill="black")
