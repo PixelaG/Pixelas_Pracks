@@ -1078,6 +1078,12 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font = ImageFont.truetype(font_path, font_size)
     return font
 
+def get_text_center_y(font, text, center_y):
+    ascent, descent = font.getmetrics()
+    (offset_x, offset_y, width, height) = font.getbbox(text)
+    text_height = ascent + descent
+    return center_y - text_height // 2 + offset_y
+
 @bot.command()
 async def getresult(ctx):
     try:
@@ -1107,36 +1113,32 @@ async def getresult(ctx):
         start_y = 290
         row_height = 51
 
-        # TeamName სვეტის პარამეტრები
         max_teamname_width = 570
-        center_team_x = 250  # შუა წერტილი მარცხენა ჩარჩოში
-
+        center_team_x = 250
         kills_x = 775
         total_x = 883
 
         for index, team in enumerate(teams):
-            center_y = start_y + index * row_height  # თითო მწკრივის ცენტრი
+            center_y = start_y + index * row_height
 
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # TeamName-ის ფონტი და განლაგება
+            # TeamName
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
             team_text_width = font_team.getlength(team_name)
-            team_bbox = font_team.getbbox(team_name)
-            team_text_height = team_bbox[3] - team_bbox[1]
             team_x = center_team_x - (team_text_width / 2)
-            team_y = center_y - (team_text_height / 2) + 2  # +2 რომ იდელურად ჩაჯდეს
-
-            # Kills/Total-ის განლაგება
-            bbox_default = font_default.getbbox("Test")
-            other_text_height = bbox_default[3] - bbox_default[1]
-            other_y = center_y - (other_text_height / 2) + 2  # +2 იგივე წესი
-
+            team_y = get_text_center_y(font_team, team_name, center_y)
             draw.text((team_x, team_y), team_name, font=font_team, fill="white")
-            draw.text((kills_x, other_y), kills, font=font_default, fill="black")
-            draw.text((total_x, other_y), total, font=font_default, fill="black")
+
+            # Kills
+            kills_y = get_text_center_y(font_default, kills, center_y)
+            draw.text((kills_x, kills_y), kills, font=font_default, fill="black")
+
+            # Total
+            total_y = get_text_center_y(font_default, total, center_y)
+            draw.text((total_x, total_y), total, font=font_default, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
