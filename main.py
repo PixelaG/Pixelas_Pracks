@@ -1078,9 +1078,10 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font = ImageFont.truetype(font_path, font_size)
     return font
 
-def get_text_height(font, text):
+def get_text_vertical_position(center_y, font, text):
     bbox = font.getbbox(text)
-    return bbox[3] - bbox[1]
+    text_height = bbox[3] - bbox[1]
+    return center_y - text_height / 2
 
 @bot.command()
 async def getresult(ctx):
@@ -1118,6 +1119,11 @@ async def getresult(ctx):
         kills_x = 775
         total_x = 883
 
+        def get_text_vertical_position(center_y, font, text):
+            bbox = font.getbbox(text)
+            text_height = bbox[3] - bbox[1]
+            return center_y - text_height / 2
+
         for index, team in enumerate(teams):
             center_y = start_y + index * row_height
 
@@ -1127,14 +1133,18 @@ async def getresult(ctx):
 
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, initial_font_size)
             text_width = font_team.getlength(team_name)
-            text_height = get_text_height(font_team, team_name)
 
             team_x = left_bound + (max_teamname_width - text_width) / 2
-            y = center_y - text_height / 2  # ეს ხაზს სწორებს ვერტიკალურად
+            y = get_text_vertical_position(center_y, font_team, team_name)
 
             draw.text((team_x, y), team_name, font=font_team, fill="white")
-            draw.text((kills_x, center_y - 13), kills, font=ImageFont.truetype(font_path, 26), fill="black")
-            draw.text((total_x, center_y - 13), total, font=ImageFont.truetype(font_path, 26), fill="black")
+
+            font_small = ImageFont.truetype(font_path, 26)
+            kills_y = get_text_vertical_position(center_y, font_small, kills)
+            total_y = get_text_vertical_position(center_y, font_small, total)
+
+            draw.text((kills_x, kills_y), kills, font=font_small, fill="black")
+            draw.text((total_x, total_y), total, font=font_small, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
