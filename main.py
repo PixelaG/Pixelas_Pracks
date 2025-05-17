@@ -1101,12 +1101,10 @@ async def getresult(ctx):
 
         font = load_font(26)
 
-        start_y = 250
+        # შენ მიერ მოწოდებული ზუსტი კოორდინატები:
+        team_x, kills_x, total_x = 237, 786, 897
+        start_y = 300
         row_height = 51
-
-        team_x = 160
-        kills_x = 540
-        total_x = 660
 
         for index, team in enumerate(teams):
             y = start_y + index * row_height
@@ -1115,11 +1113,9 @@ async def getresult(ctx):
             kills = team.get("eliminations", 0)
             total = team.get("points", 0)
 
-            team_y = y - 30  # TeamName-ის ტექსტის პოზიციის დიდი კორექტირება
-
-            draw.text((team_x, y), str(team_name), font=font, fill="black", anchor="lm")   # TeamName - left middle aligned
-            draw.text((kills_x, y), str(kills), font=font, fill="black", anchor="mm")      # Kills - center middle aligned
-            draw.text((total_x, y), str(total), font=font, fill="black", anchor="mm")      # Total - center middle aligned
+            draw.text((team_x, y), str(team_name), font=font, fill="black")
+            draw.text((kills_x, y), str(kills), font=font, fill="black")
+            draw.text((total_x, y), str(total), font=font, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
