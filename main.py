@@ -40,6 +40,7 @@ client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
+collection = db["teams"]
 teams_collection = db["Teams"]
 
 
