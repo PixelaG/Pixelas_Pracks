@@ -5,3 +5,4 @@ motor
 pymongo
 python-dotenv
 pillow
+requests
