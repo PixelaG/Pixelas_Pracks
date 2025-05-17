@@ -1076,59 +1076,53 @@ def load_font(size=30):
     except OSError:
         return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size=size)
 
-
 @bot.command()
 async def getresult(ctx):
     try:
         guild_id = ctx.guild.id
         teams = list(teams_collection.find({"guild_id": guild_id}))
+
         if not teams:
             await ctx.send("❌ მონაცემები არ მოიძებნა ამ სერვერზე.")
             return
 
-        # სორტირება ქულების მიხედვით კლებადობით
-        teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)
+        teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)[:12]
 
-        # ჩატვირთე ფონი ინტერნეტიდან
         img_url = "https://i.imgur.com/ZnCFtPG.png"
-        response = requests.get(img_url)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(img_url, headers=headers)
+
+        if response.status_code != 200:
+            await ctx.send("❌ ვერ ჩაიტვირთა ფონური სურათი.")
+            return
+
         base_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
         draw = ImageDraw.Draw(base_image)
 
-        # შრიფტი: Arial ან fallback
-        try:
-            font = ImageFont.truetype("arial.ttf", size=24)
-        except:
-            font = ImageFont.load_default()
+        font = load_font(26)
 
-        # ტექსტის ადგილმდებარეობის პარამეტრები
-        start_y = 160       # სად იწყება პირველი გუნდის ადგილი
-        line_height = 43    # დაშორება გუნდებს შორის
-        x_team = 135        # TeamName-ის X პოზიცია
-        x_kills = 480       # Kills-ის X პოზიცია
-        x_points = 580      # TOTAL-ის X პოზიცია
+        start_y = 250
+        row_height = 51
 
-        for idx, team in enumerate(teams[:12]):
+        for index, team in enumerate(teams):
+            y = start_y + index * row_height
+
             team_name = team.get("team_name", "Unknown")
             kills = team.get("eliminations", 0)
-            points = team.get("points", 0)
-            y = start_y + idx * line_height
+            total = team.get("points", 0)
 
-            # დაწერე ტექსტები შესაბამის ადგილებზე
-            draw.text((x_team, y), str(team_name), font=font, fill="white")
-            draw.text((x_kills, y), str(kills).zfill(2), font=font, fill="black")
-            draw.text((x_points, y), str(points).zfill(2), font=font, fill="black")
+            draw.text((90, y), str(team_name), font=font, fill="black")
+            draw.text((505, y), str(kills), font=font, fill="black")
+            draw.text((710, y), str(total), font=font, fill="black")
 
-        # გააგზავნე სურათი
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
             image_binary.seek(0)
-            await ctx.send(file=discord.File(fp=image_binary, filename="result.png"))
+            await ctx.send(file=discord.File(fp=image_binary, filename="results.png"))
 
     except Exception as e:
         print(f"[ERROR] getresult: {e}")
         await ctx.send(f"❌ მოხდა შეცდომა: {e}")
-
 
 
 # !resultclear - მონაცემების წაშლა
