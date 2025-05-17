@@ -1107,9 +1107,9 @@ async def getresult(ctx):
         start_y = 290
         row_height = 51
 
-        # TeamName max ფართობი და დასაწყისი X კოორდინატი
+        # TeamName max allowed width and the center X coordinate of the area
         max_teamname_width = 570
-        base_team_x = 175
+        center_team_x = 460  # (start + end)/2 roughly, შენ ადგე გაშლილი შუა
 
         kills_x = 775
         total_x = 883
@@ -1121,14 +1121,12 @@ async def getresult(ctx):
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # დაპატარავებული ფონტი
+            # ფონტის ზომის დაპატარავება თუ დიდი ტექსტია
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
-
-            # ტექსტის სიგანის მიღება
             text_width = font_team.getlength(team_name)
 
-            # X პოზიციის გამოთვლა: რომ ტექსტი არ იყოს ძალიან მარცხნივ, მაგრამ ერგებოდეს ჩარჩოს
-            team_x = base_team_x + max(0, max_teamname_width - text_width)
+            # X პოზიციის გამოთვლა, ტექსტი ცენტრში ამოჭერილი
+            team_x = center_team_x - (text_width / 2)
 
             draw.text((team_x, y), team_name, font=font_team, fill="white")
             draw.text((kills_x, y), kills, font=font_default, fill="black")
