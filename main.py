@@ -1096,7 +1096,9 @@ async def getresult(ctx):
 
         # სათაური
         title = "თამაში - შედეგები"
-        w, h = draw.textsize(title, font=font_title)
+        bbox = draw.textbbox((0, 0), title, font=font_title)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
         draw.text(((width - w) / 2, 20), title, font=font_title, fill="black")
 
         # სვეტების სათაურები
