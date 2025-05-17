@@ -1102,7 +1102,7 @@ async def getresult(ctx):
         font = load_font(26)
 
         # შენ მიერ მოწოდებული ზუსტი კოორდინატები:
-        team_x, kills_x, total_x = 190, 775, 886
+        team_x, kills_x, total_x = 175, 775, 886
         start_y = 290
         row_height = 51
 
