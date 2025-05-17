@@ -1078,15 +1078,6 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font = ImageFont.truetype(font_path, font_size)
     return font
 
-
-def get_vertical_text_offset(font):
-    ascent, descent = font.getmetrics()
-    # ტექსტის სრული სიმაღლე
-    height = ascent + descent
-    # ასცენდერი ფაქტიურად ტექსტის ზედა ცალკეული ნაწილი; თუ დაიყვანო ცენტრში,
-    # offset-ის გამოყენებით შეგვიძლია ზუსტად ჩავსწოროთ y-ს პოზიცია
-    return ascent - height // 2
-
 @bot.command()
 async def getresult(ctx):
     try:
@@ -1114,14 +1105,14 @@ async def getresult(ctx):
         font_default = ImageFont.truetype(font_path, size=30)
 
         start_y = 290
-        row_height = 51
+        row_height = 50  # 51 ცდა შეიძლება
 
-        teamname_x = 110  # მარცხნივ დაშორება ჩარჩოს
+        teamname_x = 135  # მარჯვნივ წამოწევა
         kills_x = 775
         total_x = 883
 
         for index, team in enumerate(teams):
-            y = start_y + index * row_height + 5  # ქვემოთ გადმოტანა 5 პიქსელი
+            y = start_y + index * row_height - 3  # დაბლა ჩასმა (-3)
 
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
