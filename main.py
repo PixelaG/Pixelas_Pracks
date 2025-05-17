@@ -11,7 +11,7 @@ from threading import Thread
 from colorama import init, Fore
 from datetime import datetime, timedelta
 from pymongo import MongoClient 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageFont, ImageDraw, Image
 import io
 
 load_dotenv()
@@ -1068,6 +1068,15 @@ async def createresult(ctx, *args):
         await ctx.send(f"❌ შეცდომა: {e}")
         
 
+
+def load_font(size=30):
+    try:
+        return ImageFont.truetype("arial.ttf", size=size)
+    except OSError:
+        # Render-ის უფასო Linux გარემოში ხშირად არის ეს ფონტი
+        return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size=size)
+
+
 # !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
 async def getresult(ctx):
@@ -1075,7 +1084,6 @@ async def getresult(ctx):
         guild_id = ctx.guild.id
         print(f"[DEBUG] გატანილი guild_id: {guild_id}")
 
-        # მოძებნე ყველა გუნდი შესაბამისი სერვერისთვის
         teams = list(teams_collection.find({"guild_id": guild_id}))
 
         if not teams:
@@ -1084,16 +1092,13 @@ async def getresult(ctx):
 
         print(f"[DEBUG] ნაპოვნია გუნდების რაოდენობა: {len(teams)}")
 
-        # აარჩიე საუკეთესო ქულებით და დაბლა დაწერე სურათზე
         teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)
 
-        # შექმენი სუფთა სურათი, ზომა ცხრილის მიხედვით შეიძლება შეცვალო
         width, height = 600, 50 + len(teams)*40
         image = Image.new("RGB", (width, height), color=(255, 255, 255))
         draw = ImageDraw.Draw(image)
 
-        # გამოიყენე შესაბამისი ფონტი და ზომა
-        font = ImageFont.load_default()  # ან შენი შრიფტი და პასის სწორად მიუთითე
+        font = load_font(30)  # აქ გამოვიყენე ჩვენი ფუნქცია ფონტისთვის
 
         y_text = 20
         for team in teams:
@@ -1102,7 +1107,6 @@ async def getresult(ctx):
             draw.text((20, y_text), line, font=font, fill="black")
             y_text += 40
 
-        # გამოამუშავე სურათი ბაიტებში Discord-ისთვის
         with io.BytesIO() as image_binary:
             image.save(image_binary, "PNG")
             image_binary.seek(0)
