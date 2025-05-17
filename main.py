@@ -1091,8 +1091,8 @@ async def getresult(ctx):
         image = Image.new("RGB", (width, height), color=background_color)
         draw = ImageDraw.Draw(image)
 
-        font_title = ImageFont.truetype("arial.ttf", 40)
-        font = ImageFont.truetype("arial.ttf", 28)
+        font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
 
         # სათაური შუაში
         title = "თამაში - შედეგები"
