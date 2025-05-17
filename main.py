@@ -1109,28 +1109,34 @@ async def getresult(ctx):
 
         # TeamName max allowed width and the center X coordinate of the area
         max_teamname_width = 570
-        center_team_x = 250  # (start + end)/2 roughly, შენ ადგე გაშლილი შუა
+        center_team_x = 250
 
         kills_x = 775
         total_x = 883
 
         for index, team in enumerate(teams):
-            y = start_y + index * row_height - 3
+            center_y = start_y + index * row_height
 
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # ფონტის ზომის დაპატარავება თუ დიდი ტექსტია
+            # TeamName font & positioning
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
             text_width = font_team.getlength(team_name)
-
-            # X პოზიციის გამოთვლა, ტექსტი ცენტრში ამოჭერილი
+            bbox_team = font_team.getbbox(team_name)
+            text_height_team = bbox_team[3] - bbox_team[1]
             team_x = center_team_x - (text_width / 2)
+            team_y = center_y - (text_height_team / 2)
 
-            draw.text((team_x, y), team_name, font=font_team, fill="white")
-            draw.text((kills_x, y), kills, font=font_default, fill="black")
-            draw.text((total_x, y), total, font=font_default, fill="black")
+            # Kills & Total vertical centering
+            bbox_default = font_default.getbbox("Test")
+            text_height_default = bbox_default[3] - bbox_default[1]
+            other_y = center_y - (text_height_default / 2)
+
+            draw.text((team_x, team_y), team_name, font=font_team, fill="white")
+            draw.text((kills_x, other_y), kills, font=font_default, fill="black")
+            draw.text((total_x, other_y), total, font=font_default, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
