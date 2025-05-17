@@ -1075,6 +1075,53 @@ def load_font(size=30):
     except OSError:
         return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size=size)
 
+
+@bot.command()
+async def getresult(ctx):
+    try:
+        guild_id = ctx.guild.id
+        teams = list(teams_collection.find({"guild_id": guild_id}))
+
+        if not teams:
+            await ctx.send("❌ მონაცემები არ მოიძებნა ამ სერვერზე.")
+            return
+
+        # ქულების მიხედვით დალაგება
+        teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)
+
+        # ჩატვირთე შენი template
+        background = Image.open("template.png").convert("RGBA")
+        draw = ImageDraw.Draw(background)
+        
+        # გამოიყენე შესაბამისი შრიფტი
+        font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
+
+        # Y პოზიცია პირველ გუნდზე და Y-ს ცვლადი ყოველი გუნდისთვის
+        start_y = 215
+        line_height = 44
+
+        for i, team in enumerate(teams[:12]):  # max 12 გუნდი
+            y = start_y + i * line_height
+            draw.text((75, y), f"{i+1:02}", font=font, fill="black")
+            draw.text((150, y), team.get("team_name", ""), font=font, fill="black")
+            draw.text((445, y), f"{team.get('matches_played', '00')}", font=font, fill="black")
+            draw.text((515, y), f"{team.get('wins', '00')}", font=font, fill="black")
+            draw.text((585, y), f"{team.get('position_points', '00')}", font=font, fill="black")
+            draw.text((655, y), f"{team.get('eliminations', '00')}", font=font, fill="black")
+            draw.text((725, y), f"{team.get('points', '00')}", font=font, fill="black")
+
+        # ბაიტებში გადაყვანა და გაგზავნა
+        with io.BytesIO() as image_binary:
+            background.save(image_binary, 'PNG')
+            image_binary.seek(0)
+            await ctx.send(file=discord.File(fp=image_binary, filename="result.png"))
+
+    except Exception as e:
+        await ctx.send(f"❌ მოხდა შეცდომა: {e}")
+
+
+
 @bot.command()
 async def getresult(ctx):
     try:
