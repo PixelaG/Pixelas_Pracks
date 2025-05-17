@@ -1070,10 +1070,6 @@ async def createresult(ctx, *args):
         
 
 
-def load_custom_font(path="fonts/BebasNeue-Regular.ttf", size=30):
-    return ImageFont.truetype(path, size=size)
-
-
 def adjust_font_size(text, font_path, max_width, initial_size):
     font_size = initial_size
     font = ImageFont.truetype(font_path, font_size)
@@ -1081,7 +1077,6 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font_size -= 1
         font = ImageFont.truetype(font_path, font_size)
     return font
-
 
 @bot.command()
 async def getresult(ctx):
@@ -1109,10 +1104,15 @@ async def getresult(ctx):
         font_path = "fonts/BebasNeue-Regular.ttf"
         font_default = ImageFont.truetype(font_path, size=30)
 
-        team_x, kills_x, total_x = 175, 775, 883  # ცოტათი მარჯვნივ გაწეული TeamName
         start_y = 290
         row_height = 51
-        max_teamname_width = 570  # მაქსიმალური დაშვებული სიგანე TeamName-სთვის
+
+        # TeamName max ფართობი და დასაწყისი X კოორდინატი
+        max_teamname_width = 570
+        base_team_x = 175
+
+        kills_x = 775
+        total_x = 883
 
         for index, team in enumerate(teams):
             y = start_y + index * row_height - 3
@@ -1121,8 +1121,14 @@ async def getresult(ctx):
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # TeamName-სთვის ავტომატური დაპატარავება
+            # დაპატარავებული ფონტი
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
+
+            # ტექსტის სიგანის მიღება
+            text_width = font_team.getlength(team_name)
+
+            # X პოზიციის გამოთვლა: რომ ტექსტი არ იყოს ძალიან მარცხნივ, მაგრამ ერგებოდეს ჩარჩოს
+            team_x = base_team_x + max(0, max_teamname_width - text_width)
 
             draw.text((team_x, y), team_name, font=font_team, fill="white")
             draw.text((kills_x, y), kills, font=font_default, fill="black")
