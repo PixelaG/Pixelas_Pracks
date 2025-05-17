@@ -40,8 +40,7 @@ client = MongoClient(mongo_uri)
 db = client["Pixelas_Pracks"]
 channel_collection = db["registered_channels"]
 access_entries = db["access_entries"]
-collection = db["teams"]
-servers_collection = db["Servers"]
+teams_collection = db["Teams"]
 
 
 intents = discord.Intents.default()
