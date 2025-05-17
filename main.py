@@ -1073,50 +1073,62 @@ def load_font(size=30):
     try:
         return ImageFont.truetype("arial.ttf", size=size)
     except OSError:
-        # Render-ის უფასო Linux გარემოში ხშირად არის ეს ფონტი
         return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size=size)
 
-
-# !getresult - ყველა გუნდის შედეგის ჩვენება
 @bot.command()
 async def getresult(ctx):
     try:
         guild_id = ctx.guild.id
-        print(f"[DEBUG] გატანილი guild_id: {guild_id}")
-
         teams = list(teams_collection.find({"guild_id": guild_id}))
 
         if not teams:
             await ctx.send("❌ მონაცემები არ მოიძებნა ამ სერვერზე.")
             return
 
-        print(f"[DEBUG] ნაპოვნია გუნდების რაოდენობა: {len(teams)}")
-
         teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)
 
-        width, height = 600, 50 + len(teams)*40
-        image = Image.new("RGB", (width, height), color=(255, 255, 255))
+        width, height = 700, 100 + len(teams)*50
+        image = Image.new("RGB", (width, height), color=(240, 240, 240))  # რბილი ნაცრისფერი ფონი
         draw = ImageDraw.Draw(image)
+        font_title = load_font(40)
+        font_header = load_font(25)
+        font = load_font(30)
 
-        font = load_font(30)  # აქ გამოვიყენე ჩვენი ფუნქცია ფონტისთვის
+        # სათაური
+        title = "თამაში - შედეგები"
+        w, h = draw.textsize(title, font=font_title)
+        draw.text(((width - w) / 2, 20), title, font=font_title, fill="black")
 
-        y_text = 20
+        # სვეტების სათაურები
+        headers = ["გუნდი", "ქულები", "მკვლელობები"]
+        header_x_positions = [50, 450, 600]
+        for i, header in enumerate(headers):
+            draw.text((header_x_positions[i], 80), header, font=font_header, fill="black")
+
+        # ხაზი სათაურებს ქვემოთ
+        draw.line([(40, 115), (width-40, 115)], fill="black", width=2)
+
+        # შედეგების ჩამოწერა
+        y_text = 130
         for team in teams:
-            line = f"{team.get('team_name', 'Unknown')} – {team.get('points', 0)} ქულა – {team.get('eliminations', 0)} მკვლელობა"
-            print(f"[DEBUG] წერია სურათზე: {line}")
-            draw.text((20, y_text), line, font=font, fill="black")
-            y_text += 40
+            draw.text((50, y_text), str(team.get('team_name', 'Unknown')), font=font, fill="black")
+            draw.text((450, y_text), str(team.get('points', 0)), font=font, fill="black")
+            draw.text((600, y_text), str(team.get('eliminations', 0)), font=font, fill="black")
+            # ხაზები თითოეულ გუნდს შორის
+            draw.line([(40, y_text + 40), (width-40, y_text + 40)], fill=(200, 200, 200), width=1)
+            y_text += 50
 
         with io.BytesIO() as image_binary:
             image.save(image_binary, "PNG")
             image_binary.seek(0)
             file = discord.File(fp=image_binary, filename="result.png")
-
             await ctx.send(file=file)
 
     except Exception as e:
         print(f"[ERROR] getresult: {e}")
         await ctx.send(f"❌ მოხდა შეცდომა: {e}")
+
+
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
