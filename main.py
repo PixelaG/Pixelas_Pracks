@@ -1046,7 +1046,7 @@ async def createresult(ctx, *args):
                 new_eliminations = existing['eliminations'] + eliminations
                 new_points = existing['points'] + points
 
-                collection.update_one(
+                teams_collection.update_one(
                     {"guild_id": guild_id, "team_name": team_name},
                     {"$set": {
                         "eliminations": new_eliminations,
