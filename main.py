@@ -1078,11 +1078,6 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font = ImageFont.truetype(font_path, font_size)
     return font
 
-def get_text_vertical_position(center_y, font, text):
-    bbox = font.getbbox(text)
-    text_height = bbox[3] - bbox[1]
-    return center_y - text_height / 2
-
 @bot.command()
 async def getresult(ctx):
     try:
@@ -1107,44 +1102,36 @@ async def getresult(ctx):
         draw = ImageDraw.Draw(base_image)
 
         font_path = "fonts/BebasNeue-Regular.ttf"
-        initial_font_size = 30
+        font_default = ImageFont.truetype(font_path, size=30)
 
         start_y = 290
         row_height = 51
 
-        left_bound = 170
-        right_bound = 740
+        # ჩარჩოს მარცხენა და მარჯვენა პოზიციები TeamName-ისთვის (იოსფერი ჩარჩო)
+        left_bound = 150   # მარცხენა საზღვარი (იზომე ზუსტად ჩარჩოდან)
+        right_bound = 720  # მარჯვენა საზღვარი ჩარჩოს
+
         max_teamname_width = right_bound - left_bound
 
         kills_x = 775
         total_x = 883
 
-        def get_text_vertical_position(center_y, font, text):
-            bbox = font.getbbox(text)
-            text_height = bbox[3] - bbox[1]
-            return center_y - text_height / 2
-
         for index, team in enumerate(teams):
-            center_y = start_y + index * row_height
+            y = start_y + index * row_height - 3
 
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            font_team = adjust_font_size(team_name, font_path, max_teamname_width, initial_font_size)
-            text_width = font_team.getlength(team_name)
+            # ფონტის ზომის დაპატარავება, თუ ტექსტი დიდია
+            font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
 
-            team_x = left_bound + (max_teamname_width - text_width) / 2
-            y = get_text_vertical_position(center_y, font_team, team_name)
+            # TeamName იწყება ჩარჩოს მარცხენა პოზიციიდან
+            team_x = left_bound
 
             draw.text((team_x, y), team_name, font=font_team, fill="white")
-
-            font_small = ImageFont.truetype(font_path, 26)
-            kills_y = get_text_vertical_position(center_y, font_small, kills)
-            total_y = get_text_vertical_position(center_y, font_small, total)
-
-            draw.text((kills_x, kills_y), kills, font=font_small, fill="black")
-            draw.text((total_x, total_y), total, font=font_small, fill="black")
+            draw.text((kills_x, y), kills, font=font_default, fill="black")
+            draw.text((total_x, y), total, font=font_default, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
@@ -1154,7 +1141,6 @@ async def getresult(ctx):
     except Exception as e:
         print(f"[ERROR] getresult: {e}")
         await ctx.send(f"❌ მოხდა შეცდომა: {e}")
-
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
