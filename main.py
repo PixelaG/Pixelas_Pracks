@@ -1080,54 +1080,47 @@ async def getresult(ctx):
     try:
         guild_id = ctx.guild.id
         teams = list(teams_collection.find({"guild_id": guild_id}))
-
         if not teams:
             await ctx.send("❌ მონაცემები არ მოიძებნა ამ სერვერზე.")
             return
 
         teams = sorted(teams, key=lambda x: x.get("points", 0), reverse=True)
 
-        width, height = 700, 100 + len(teams)*50
-        image = Image.new("RGB", (width, height), color=(240, 240, 240))  # რბილი ნაცრისფერი ფონი
+        width, height = 600, 80 + len(teams)*50
+        background_color = (240, 240, 240)  # მსუბუქი ნაცრისფერი
+        image = Image.new("RGB", (width, height), color=background_color)
         draw = ImageDraw.Draw(image)
-        font_title = load_font(40)
-        font_header = load_font(25)
-        font = load_font(30)
 
-        # სათაური
+        font_title = ImageFont.truetype("arial.ttf", 40)
+        font = ImageFont.truetype("arial.ttf", 28)
+
+        # სათაური შუაში
         title = "თამაში - შედეგები"
         bbox = draw.textbbox((0, 0), title, font=font_title)
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
         draw.text(((width - w) / 2, 20), title, font=font_title, fill="black")
 
-        # სვეტების სათაურები
-        headers = ["გუნდი", "ქულები", "მკვლელობები"]
-        header_x_positions = [50, 450, 600]
-        for i, header in enumerate(headers):
-            draw.text((header_x_positions[i], 80), header, font=font_header, fill="black")
+        y_text = 80
+        line_height = 40
 
-        # ხაზი სათაურებს ქვემოთ
-        draw.line([(40, 115), (width-40, 115)], fill="black", width=2)
-
-        # შედეგების ჩამოწერა
-        y_text = 130
+        # ხაზების გასწორება და უკეთესი spacing
         for team in teams:
-            draw.text((50, y_text), str(team.get('team_name', 'Unknown')), font=font, fill="black")
-            draw.text((450, y_text), str(team.get('points', 0)), font=font, fill="black")
-            draw.text((600, y_text), str(team.get('eliminations', 0)), font=font, fill="black")
-            # ხაზები თითოეულ გუნდს შორის
-            draw.line([(40, y_text + 40), (width-40, y_text + 40)], fill=(200, 200, 200), width=1)
-            y_text += 50
+            line = f"{team.get('team_name', 'Unknown')} – {team.get('points', 0)} ქულა – {team.get('eliminations', 0)} მკვლელობა"
+            bbox = draw.textbbox((0, 0), line, font=font)
+            w = bbox[2] - bbox[0]
+            # ტექსტის შუაში გასწორება
+            draw.text(((width - w) / 2, y_text), line, font=font, fill="black")
+            y_text += line_height + 10  # 10 პიქსელი spacing
 
         with io.BytesIO() as image_binary:
             image.save(image_binary, "PNG")
             image_binary.seek(0)
             file = discord.File(fp=image_binary, filename="result.png")
+
             await ctx.send(file=file)
 
     except Exception as e:
-        print(f"[ERROR] getresult: {e}")
         await ctx.send(f"❌ მოხდა შეცდომა: {e}")
 
 
