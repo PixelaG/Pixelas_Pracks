@@ -1115,7 +1115,7 @@ async def getresult(ctx):
             kills = team.get("eliminations", 0)
             total = team.get("points", 0)
 
-            team_y = y - 10  # TeamName-ის ტექსტი ზემოთ დავწიოთ
+            team_y = y - 30  # TeamName-ის ტექსტის პოზიციის დიდი კორექტირება
 
             draw.text((team_x, y), str(team_name), font=font, fill="black", anchor="lm")   # TeamName - left middle aligned
             draw.text((kills_x, y), str(kills), font=font, fill="black", anchor="mm")      # Kills - center middle aligned
