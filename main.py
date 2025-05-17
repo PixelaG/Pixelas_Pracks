@@ -1070,6 +1070,14 @@ async def createresult(ctx, *args):
         
 
 
+def adjust_font_size(text, font_path, max_width, initial_size):
+    font_size = initial_size
+    font = ImageFont.truetype(font_path, font_size)
+    while font.getlength(text) > max_width and font_size > 10:
+        font_size -= 1
+        font = ImageFont.truetype(font_path, font_size)
+    return font
+
 def get_text_height(font, text):
     bbox = font.getbbox(text)
     return bbox[3] - bbox[1]
@@ -1098,46 +1106,35 @@ async def getresult(ctx):
         draw = ImageDraw.Draw(base_image)
 
         font_path = "fonts/BebasNeue-Regular.ttf"
-        max_teamname_width = 570
-        center_team_x = 250
-
-        kills_x = 775
-        total_x = 883
+        initial_font_size = 30
 
         start_y = 290
         row_height = 51
 
-        font_default = ImageFont.truetype(font_path, size=26)
+        left_bound = 170
+        right_bound = 740
+        max_teamname_width = right_bound - left_bound
 
-        # პირველ ხაზზე ფონტი და ტექსტის სიმაღლე
-        first_team_name = str(teams[0].get("team_name", "Unknown"))
-        font_team_first = adjust_font_size(first_team_name, font_path, max_teamname_width, 30)
-        first_text_height = get_text_height(font_team_first, first_team_name)
+        kills_x = 775
+        total_x = 883
 
         for index, team in enumerate(teams):
-            # Y პოზიცია ყველა ხაზისთვის როგორც პირველ ხაზის Y + index*row_height
-            y = start_y + index * row_height
+            center_y = start_y + index * row_height
 
             team_name = str(team.get("team_name", "Unknown"))
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
-
-            # ტექსტის სიგანე და X პოზიცია ცენტრში
+            font_team = adjust_font_size(team_name, font_path, max_teamname_width, initial_font_size)
             text_width = font_team.getlength(team_name)
-            x_team = center_team_x - (text_width / 2)
+            text_height = get_text_height(font_team, team_name)
 
-            # Y-სთვის გამოთვალეთ ისე რომ ყველა ხაზზე ერთნაირად იყოს (შედარებით პირველ ხაზთან)
-            # ტექსტის ცენტრი დაემთხვევა ჩარჩოს ხაზის ცენტრს (y + row_height/2)
-            y_team = y + (row_height - get_text_height(font_team, team_name)) // 2
+            team_x = left_bound + (max_teamname_width - text_width) / 2
+            y = center_y - text_height / 2  # ეს ხაზს სწორებს ვერტიკალურად
 
-            # Kills და Total-სთვის გამოიყენეთ იგივე Y როგორც TeamName-ისთვის, მაგრამ სხვანაირი ფონტი
-            y_other = y + (row_height - get_text_height(font_default, kills)) // 2
-
-            draw.text((x_team, y_team), team_name, font=font_team, fill="white")
-            draw.text((kills_x, y_other), kills, font=font_default, fill="black")
-            draw.text((total_x, y_other), total, font=font_default, fill="black")
+            draw.text((team_x, y), team_name, font=font_team, fill="white")
+            draw.text((kills_x, center_y - 13), kills, font=ImageFont.truetype(font_path, 26), fill="black")
+            draw.text((total_x, center_y - 13), total, font=ImageFont.truetype(font_path, 26), fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
