@@ -1109,7 +1109,7 @@ async def getresult(ctx):
         font_path = "fonts/BebasNeue-Regular.ttf"
         font_default = ImageFont.truetype(font_path, size=30)
 
-        team_x, kills_x, total_x = 190, 775, 883  # ცოტათი მარჯვნივ გაწეული TeamName
+        team_x, kills_x, total_x = 175, 775, 883  # ცოტათი მარჯვნივ გაწეული TeamName
         start_y = 290
         row_height = 51
         max_teamname_width = 570  # მაქსიმალური დაშვებული სიგანე TeamName-სთვის
