@@ -1103,7 +1103,7 @@ async def getresult(ctx):
 
         # შენ მიერ მოწოდებული ზუსტი კოორდინატები:
         team_x, kills_x, total_x = 210, 786, 897
-        start_y = 300
+        start_y = 290
         row_height = 51
 
         for index, team in enumerate(teams):
