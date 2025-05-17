@@ -1096,10 +1096,9 @@ async def getresult(ctx):
         base_image = Image.open(io.BytesIO(response.content)).convert("RGBA")
         draw = ImageDraw.Draw(base_image)
 
-        # ყველა ტექსტისთვის გამოიყენება ახალი ფონტი
         font = load_custom_font(size=30)
 
-        # განახლებული კოორდინატები
+        # კოორდინატები
         team_x, kills_x, total_x = 170, 775, 883
         start_y = 290
         row_height = 51
@@ -1107,13 +1106,10 @@ async def getresult(ctx):
         for index, team in enumerate(teams):
             y = start_y + index * row_height
 
-            team_name = team.get("team_name", "Unknown")
-            kills = team.get("eliminations", 0)
-            total = team.get("points", 0)
-
-            draw.text((team_x, y), str(team_name), font=font, fill="white")
-            draw.text((kills_x, y), str(kills), font=font, fill="black")
-            draw.text((total_x, y), str(total), font=font, fill="black")
+            # 🠕 აწეულია -3 პიქსელით
+            draw.text((team_x, y - 3), str(team.get("team_name", "Unknown")), font=font, fill="white")
+            draw.text((kills_x, y - 3), str(team.get("eliminations", 0)), font=font, fill="black")
+            draw.text((total_x, y - 3), str(team.get("points", 0)), font=font, fill="black")
 
         with io.BytesIO() as image_binary:
             base_image.save(image_binary, "PNG")
