@@ -1078,8 +1078,9 @@ def adjust_font_size(text, font_path, max_width, initial_size):
         font = ImageFont.truetype(font_path, font_size)
     return font
 
-def get_centered_y(draw, text, font, center_y):
-    text_width, text_height = draw.textsize(text, font=font)
+def get_centered_y(font, text, center_y):
+    bbox = font.getbbox(text)
+    text_height = bbox[3] - bbox[1]
     return center_y - text_height // 2
 
 @bot.command()
@@ -1107,7 +1108,7 @@ async def getresult(ctx):
 
         font_path = "fonts/BebasNeue-Regular.ttf"
         max_teamname_width = 570
-        center_team_x = 250  # TeamName-ის ცენტრი X
+        center_team_x = 250
 
         kills_x = 775
         total_x = 883
@@ -1122,16 +1123,12 @@ async def getresult(ctx):
             kills = str(team.get("eliminations", 0))
             total = str(team.get("points", 0))
 
-            # ფონტის ზომის დაპატარავება თუ დიდი ტექსტია
             font_team = adjust_font_size(team_name, font_path, max_teamname_width, 30)
             font_default = ImageFont.truetype(font_path, size=26)
 
-            # TeamName - ის Y ცენტრში გამართვა
-            y_team = get_centered_y(draw, team_name, font_team, center_y)
-            # Kills და Total-ს უფრო პატარა ზომის ფონტი აქვს
-            y_other = get_centered_y(draw, kills, font_default, center_y)
+            y_team = get_centered_y(font_team, team_name, center_y)
+            y_other = get_centered_y(font_default, kills, center_y)
 
-            # TeamName ცენტრში X-ს იწევენ და ზომის მიხედვით ცვლიან
             text_width = font_team.getlength(team_name)
             x_team = center_team_x - (text_width / 2)
 
@@ -1147,6 +1144,7 @@ async def getresult(ctx):
     except Exception as e:
         print(f"[ERROR] getresult: {e}")
         await ctx.send(f"❌ მოხდა შეცდომა: {e}")
+
 
 # !resultclear - მონაცემების წაშლა
 @bot.command()
