@@ -1093,7 +1093,7 @@ async def getresult(ctx):
         draw = ImageDraw.Draw(image)
 
         # გამოიყენე შესაბამისი ფონტი და ზომა
-        font = ImageFont.truetype("arial.ttf", size=30)  # ან შენი შრიფტი და პასის სწორად მიუთითე
+        font = ImageFont.load_default()  # ან შენი შრიფტი და პასის სწორად მიუთითე
 
         y_text = 20
         for team in teams:
