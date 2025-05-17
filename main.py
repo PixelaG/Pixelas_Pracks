@@ -1056,7 +1056,7 @@ async def createresult(ctx, *args):
                 await ctx.send(f"🔁 განახლებულია: {team_name} – {new_eliminations} მკვლელობა – {new_points} ქულა")
             else:
                 # ახალი გუნდი — ვამატებთ
-                collection.insert_one({
+                teams_collection.insert_one({
                     "guild_id": guild_id,  # სერვერის ID
                     "team_name": team_name,
                     "eliminations": eliminations,
